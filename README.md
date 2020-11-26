@@ -1,3 +1,5 @@
+![Test on python 3.6 to 3.9 and Windows, Linux and macos.](https://github.com/codiewood/BSP_Project/workflows/Test%20on%20python%203.6%20to%203.9%20and%20Windows,%20Linux%20and%20macos./badge.svg)
+
 # OxRSE Continuous Integration course
 
 This project contains a small Python project. We are going to use free cloud services to automate:
