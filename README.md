@@ -1,5 +1,7 @@
 ![Test on python 3.6 to 3.9 and Windows, Linux and macos.](https://github.com/codiewood/BSP_Project/workflows/Test%20on%20python%203.6%20to%203.9%20and%20Windows,%20Linux%20and%20macos./badge.svg)
 
+[![codecov](https://codecov.io/gh/codiewood/BSP_Project/branch/main/graph/badge.svg?token=Z5LVN7MTB4)](https://codecov.io/gh/codiewood/BSP_Project)
+
 # OxRSE Continuous Integration course
 
 This project contains a small Python project. We are going to use free cloud services to automate:
