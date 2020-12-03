@@ -4,6 +4,8 @@
 
 [![BCH compliance](https://bettercodehub.com/edge/badge/codiewood/BSP_Project?branch=main)](https://bettercodehub.com/)
 
+[![Documentation Status](https://readthedocs.org/projects/part-b-structured-project/badge/?version=latest)](https://part-b-structured-project.readthedocs.io/en/latest/?badge=latest)
+
 # OxRSE Continuous Integration course
 
 This project contains a small Python project. We are going to use free cloud services to automate:
