@@ -1,4 +1,4 @@
-![Test on python 3.6 to 3.9 and Windows, Linux and macos.](https://github.com/codiewood/BSP_Project/workflows/Test%20on%20python%203.6%20to%203.9%20and%20Windows,%20Linux%20and%20macos./badge.svg)
+![Test on Python 3.6-3.9 & Windows, Linux and macOS.](https://github.com/codiewood/BSP_Project/workflows/Test%20on%20Python%203.6-3.9%20&%20Windows,%20Linux%20and%20macOS./badge.svg)
 
 [![codecov](https://codecov.io/gh/codiewood/BSP_Project/branch/main/graph/badge.svg?token=Z5LVN7MTB4)](https://codecov.io/gh/codiewood/BSP_Project)
 
