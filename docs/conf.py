@@ -17,9 +17,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'OxRSE CI Course'
-copyright = '2020, Fergus Cooper'
-author = 'Fergus Cooper'
+project = 'Part B Structured Project'
+copyright = '2020, Codie Wood'
+author = 'Codie Wood'
 
 
 # -- General configuration ---------------------------------------------------
