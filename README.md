@@ -2,6 +2,8 @@
 
 [![codecov](https://codecov.io/gh/codiewood/BSP_Project/branch/main/graph/badge.svg?token=Z5LVN7MTB4)](https://codecov.io/gh/codiewood/BSP_Project)
 
+[![BCH compliance](https://bettercodehub.com/edge/badge/codiewood/BSP_Project?branch=main)](https://bettercodehub.com/)
+
 # OxRSE Continuous Integration course
 
 This project contains a small Python project. We are going to use free cloud services to automate:
