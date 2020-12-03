@@ -9,6 +9,8 @@ Welcome to Part B Structured Project's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+   
+   quickstart
 
 
 Indices and tables
