@@ -1,6 +1,7 @@
 import numpy as np
 from math import sqrt
 
+
 def rand_pert(n, mag=0.05, time_step=0.005):
     """
     A function that takes a number of cells, magnitude and time step and generates a random perturbation force.
@@ -24,4 +25,3 @@ def rand_pert(n, mag=0.05, time_step=0.005):
     x = np.random.normal(0, 1, n)
     force = sqrt(2*mag/time_step)*x
     return force
-
