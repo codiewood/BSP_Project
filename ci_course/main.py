@@ -1,16 +1,17 @@
+import numpy as np
 from numpy import random
-from math import sqrt
+import math
+from math import sqrt, log, exp
+# from matplotlib import pyplot as plt
+from scipy.spatial.distance import euclidean
 
 
-def rand_pert(n, mag=0.05, time_step=0.005):
+def rand_pert(mag=0.05, time_step=0.005):
     """
-    A function that takes a number of cells, magnitude and time step and generates a random perturbation force.
+    A function that takes a magnitude and time step and generates a random perturbation force.
 
     Parameters
     ----------
-    n : int
-        Number of cells in simulation.
-
     mag : int, float
         Magnitude of perturbation. Default is 0.05.
 
@@ -20,9 +21,9 @@ def rand_pert(n, mag=0.05, time_step=0.005):
     Returns
     -------
     numpy.array
-        The random perturbation force, an n x 1 array.
+        The random perturbation force.
     """
-    x = random.normal(0, 1, n)
+    x = random.normal(0, 1)
     force = sqrt(2 * mag / time_step) * x
     return force
 
@@ -38,12 +39,13 @@ def uniform_coords(lim):
 
     Returns
     -------
-    tuple
+    list
         2D coordinates.
     """
     x = round(random.uniform(lim), 3)
     y = round(random.uniform(lim), 3)
-    return x, y
+    coords = np.array([x, y])
+    return coords
 
 
 class Monolayer:
