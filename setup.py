@@ -12,7 +12,8 @@ setup(
     packages=['ci_course'],
 
     install_requires=[
-        'numpy==1.19.3'
+        'numpy==1.19.3',
+        'scipy'
     ],
 
     extras_require={
