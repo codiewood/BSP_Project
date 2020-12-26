@@ -9,3 +9,10 @@ def test_rand_pert():
     np.random.seed(1234)
     assert np.round(ci_course.rand_pert(1, 1), 5) == np.array([0.66671])
     assert ci_course.rand_pert() == np.array([])
+
+def test_set_mu():
+    x = Monolayer()
+    assert x.mu == 50
+    x.set_mu(5)
+    assert x.mu == 5
+    x.set_mu('string')
