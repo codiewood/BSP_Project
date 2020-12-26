@@ -6,17 +6,17 @@ from math import sqrt, log, exp
 from scipy.spatial.distance import euclidean
 
 
-def rand_pert(mag=0.05, time_step=0.005):
+def rand_pert(mag, time_step):
     """
     A function that takes a magnitude and time step and generates a random perturbation force.
 
     Parameters
     ----------
     mag : int, float
-        Magnitude of perturbation. Default is 0.05.
+        Magnitude of perturbation.
 
     time_step : int, float
-        The time step of the simulation, in hours. Default is 0.005.
+        The time step of the simulation, in hours.
 
     Returns
     -------
@@ -39,7 +39,7 @@ def uniform_coords(lim):
 
     Returns
     -------
-    list
+    numpy.array
         2D coordinates.
     """
     x = round(random.uniform(lim), 3)
@@ -132,7 +132,7 @@ class Monolayer:
     def neighbours(self, cell_index, r_max=2.5):  # May be redundant
         """
         Generates a list of the neighbours of a specified cell, where a neighbour is
-        another cell in the monolayer whose centre is within the interaction radius (r_max) of the specified.
+        another cell in the monolayer whose centre is within the interaction radius (r_max) of the specified cell.
 
         Parameters
         ----------
@@ -160,6 +160,23 @@ class Monolayer:
         return neighbours
 
     def interaction_forces(self, cell_index, r_max=2.5):
+        """
+        Generates the interaction forces acting on a particular cell in the monolayer, caused by the other cells
+        present in the monolayer.
+
+        Parameters
+        ----------
+        cell_index : int
+            The position index of the cell within the monolayer whose neighbours we seek.
+
+        r_max : int, float
+            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
+
+        Returns
+        -------
+        list
+            A list of the index values of each neighbour of cell_a.
+        """
         cell_a = self.positions[cell_index]
         neighbours = self.neighbours(cell_index, r_max)
         forces = [0] * self.num_cells
@@ -181,6 +198,24 @@ class Monolayer:
         return forces
 
     def simulate_step(self, time_step=0.005, mag=0.05, drag=1, r_max=2.5):
+        """
+        Simulates one time step of the model, using a forward-Euler time step equation, and updates the
+        position of each cell in the monolayer accordingly.
+
+        Parameters
+        ----------
+        time_step : int, float
+            The time step of the simulation, in hours. Default is 0.005.
+
+        mag : int, float
+            Magnitude of perturbation. Default is 0.05.
+
+        drag : int, float
+            The maximum euclidean distance permitting interaction between two cells. Default is 1.
+
+        r_max : int, float
+            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
+        """
         index = -1
         updated_positions = self.positions
         for position in self.positions:
@@ -193,6 +228,26 @@ class Monolayer:
         self.positions = updated_positions
 
     def simulate(self, end_time=100, time_step=0.005, mag=0.05, drag=1, r_max=2.5):
-        its = math.ceil(end_time/time_step)
+        """
+        Simulates the model for a full time frame, using a forward-Euler time step equation.
+
+        Parameters
+        ----------
+        end_time : int, float
+            The end time of the simulation, in hours. Default is 100.
+
+        time_step : int, float
+            The time step of the simulation, in hours. Default is 0.005.
+
+        mag : int, float
+            Magnitude of perturbation. Default is 0.05.
+
+        drag : int, float
+            The maximum euclidean distance permitting interaction between two cells. Default is 1.
+
+        r_max : int, float
+            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
+        """
+        its = math.ceil(end_time/time_step)  # Calculate number of iterations needed for end time to be reached
         for i in list(range(its)):
             self.simulate_step(time_step, mag, drag, r_max)
