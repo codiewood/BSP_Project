@@ -72,6 +72,47 @@ class Monolayer:
         self.initial_positions = self.generate_cells()
         self.positions = self.initial_positions
         self.cell_types = [0] * self.type_0 + [1] * self.type_1
+        self.mu = 50
+        self.mu_het = 5
+        self.k_c = 5
+        self.radius = 1
+
+    def set_mu(self, mu=50, mu_het=5):
+        """
+        Initialises spring constants of the cells in the monolayer.
+
+        Parameters
+        ----------
+        mu : int, float
+            Spring constant. Default value is 50.
+
+        mu_het : int, float
+            Heterotypic spring constant. Default value is 5.
+        """
+        self.mu = mu
+        self.mu_het = mu_het
+
+    def set_k_c(self, k_c):
+        """
+        Initialises decay of attraction force of the cells in the monolayer.
+
+        Parameters
+        ----------
+        k_c : int, float
+            Decay of attraction force. Default value is 5.
+        """
+        self.k_c = k_c
+
+    def set_radius(self, rad):
+        """
+        Initialises radius of the cells in the monolayer.
+
+        Parameters
+        ----------
+        rad : int, float
+            Radius of cells. Default value is 1.
+        """
+        self.radius = rad
 
     def generate_cells(self):
         """
@@ -118,7 +159,7 @@ class Monolayer:
                 neighbours.append(index)
         return neighbours
 
-    def interaction_forces(self, cell_index, mu=50, k_c=5, r_max=2.5):
+    def interaction_forces(self, cell_index, r_max=2.5):
         cell_a = self.positions[cell_index]
         neighbours = self.neighbours(cell_index, r_max)
         forces = [0] * self.num_cells
@@ -126,27 +167,32 @@ class Monolayer:
             cell_b = self.positions[index]
             dist = euclidean(cell_a, cell_b)
             r = cell_b - cell_a
-            r_hat = r/dist
-            if dist < 2:
-                f = mu * r_hat * log(1 + (dist - 2)/2)
+            r_hat = r/dist  # Unit vector between cell centres
+            s = 2 * self.radius  # Natural separation of cells
+            if self.cell_types[index] != self.cell_types[cell_index]:  # If cells are not the same type
+                mu = self.mu_het  # Use heterotypic spring constant
             else:
-                f = mu * (dist - 2) * r_hat * exp(-k_c * (dist - 2)/2)
+                mu = self.mu  # Use spring constant
+            if dist < s:
+                f = mu * r_hat * log(1 + (dist - s)/s)
+            else:
+                f = mu * (dist - s) * r_hat * exp(-self.k_c * (dist - s)/s)
             forces[index] = f
         return forces
 
-    def simulate_step(self, time_step=0.005, mag=0.05, eta=1, mu=50, k_c=5, r_max=2.5):
+    def simulate_step(self, time_step=0.005, mag=0.05, drag=1, r_max=2.5):
         index = -1
         updated_positions = self.positions
         for position in self.positions:
             index += 1
-            int_forces = sum(self.interaction_forces(index, mu, k_c, r_max))
+            int_forces = sum(self.interaction_forces(index, r_max))
             net_force = int_forces + rand_pert(mag, time_step)
-            new_position = position + time_step * net_force / eta
+            new_position = position + time_step * net_force / drag
             if 0 <= new_position[0] <= self.size and 0 <= new_position[0] <= self.size:  # Accepting any moves in domain
                 updated_positions[index] = new_position
         self.positions = updated_positions
 
-    def simulate(self, end_time=100, time_step=0.005, mag=0.05, eta=1, mu=50, k_c=5, r_max=2.5):
+    def simulate(self, end_time=100, time_step=0.005, mag=0.05, drag=1, r_max=2.5):
         its = math.ceil(end_time/time_step)
         for i in list(range(its)):
-            self.simulate_step(time_step, mag, eta, mu, k_c, r_max)
+            self.simulate_step(time_step, mag, drag, r_max)
