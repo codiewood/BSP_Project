@@ -2,7 +2,7 @@ import numpy as np
 from numpy import random
 import math
 from math import sqrt, log, exp
-# from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
 from scipy.spatial.distance import euclidean
 
 
@@ -222,8 +222,8 @@ class Monolayer:
             index += 1
             int_forces = sum(self.interaction_forces(index, r_max))
             net_force = int_forces + rand_pert(mag, time_step)
-            new_position = position + time_step * net_force / drag
-            if 0 <= new_position[0] <= self.size and 0 <= new_position[0] <= self.size:  # Accepting any moves in domain
+            new_position = position + np.round(time_step * net_force / drag, 3)
+            if 0 <= new_position[0] <= self.size and 0 <= new_position[1] <= self.size:  # Accepting any moves in domain
                 updated_positions[index] = new_position
         self.positions = updated_positions
 
@@ -251,3 +251,36 @@ class Monolayer:
         its = math.ceil(end_time/time_step)  # Calculate number of iterations needed for end time to be reached
         for i in list(range(its)):
             self.simulate_step(time_step, mag, drag, r_max)
+
+    def show_cells(self, time=0, time_step=0.005, mag=0.005, drag=1, r_max=2.5, show_interactions=False):
+        # TODO refactor
+        # TODO make so that can have time be a vector
+        # TODO make run better (very slow)
+        self.simulate(time,time_step,mag,drag,r_max)
+        pos = np.stack(self.positions)
+        cell_types = self.cell_types
+        vmax = self.size
+        radius = self.radius
+        fig, ax = plt.subplots()
+        ax.set_xlim(-radius, vmax + radius)
+        ax.set_ylim(-radius, vmax + radius)
+        ax.set_aspect(1)
+        for xi, yi, ti in zip(pos[:, 0], pos[:, 1], cell_types):
+            if show_interactions == True:
+                interaction_zone = plt.Circle((xi, yi), radius=r_max, facecolor='grey', edgecolor='k', alpha=0.15)
+                fig.gca().add_artist(interaction_zone)
+            if ti == 0:
+                cell_colour = 'plum'
+            else:
+                cell_colour = 'royalblue'
+            cell = plt.Circle((xi, yi), radius=x.radius, facecolor=cell_colour, edgecolor='k')
+            fig.gca().add_artist(cell)
+        plt.show()
+
+
+np.random.seed(1234)
+x = Monolayer(10,size=12)
+x.show_cells(show_interactions=True)
+x.show_cells(time=500, show_interactions=True)
+
+# TODO Find way to get all of cell data in one big array, positions to be array rather than list etc.
