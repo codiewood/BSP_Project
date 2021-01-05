@@ -19,5 +19,6 @@ def test_set_mu():
     assert x.mu == 5 and x.mu_het == 7
 
 
-# TODO Test for uniform coords (?)
-# TODO Tests for class functions
+# TODO: Test for uniform coords (?)
+# TODO: Tests for class functions
+# TODO: Docstrings
