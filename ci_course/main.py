@@ -116,7 +116,7 @@ class Monolayer:
             Radius of cells with type 0. Default value is 1.
 
         rad1 : int, float
-            Radius of cells with type 0. Default value is 1.
+            Radius of cells with type 1. Default value is 1.
         """
         self.r0 = rad0
         self.r1 = rad1
