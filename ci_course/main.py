@@ -74,13 +74,14 @@ class Monolayer:
         self.positions = self.generate_positions()
         self.cell_types = [0] * self.type_0 + [1] * self.type_1
         self.mu = 50
-        self.mu_het = 5
+        self.lam = 0.1
         self.k_c = 5
         self.r0 = 1
         self.r1 = 1
         self.sim_time = 0
+        self.sim_params = (2.5, 0.05, 1)
 
-    def set_mu(self, mu=50, mu_het=5):
+    def set_mu(self, mu=50, lam=0.1):
         """
         Initialises spring constants of the cells in the monolayer.
 
@@ -89,11 +90,11 @@ class Monolayer:
         mu : int, float
             Spring constant. Default value is 50.
 
-        mu_het : int, float
-            Heterotypic spring constant. Default value is 5.
+        lam : int, float
+            Multiplicative scaling factor used to determine heterotypic spring constant. Default value is 0.1.
         """
         self.mu = mu
-        self.mu_het = mu_het
+        self.lam = lam
 
     def set_k_c(self, k_c=5):
         """
@@ -106,19 +107,15 @@ class Monolayer:
         """
         self.k_c = k_c
 
-    def set_radius(self, rad0=1, rad1=1):
+    def set_radius(self, rad1=1):
         """
-        Initialises radius of the cells in the monolayer.
+        Initialises differing radii of the cells in the monolayer. Radius of cell type 0 is taken as 1 unit.
 
         Parameters
         ----------
-        rad0 : int, float
-            Radius of cells with type 0. Default value is 1.
-
         rad1 : int, float
-            Radius of cells with type 1. Default value is 1.
+            Radius of cells with type 1, relative to that of cell type 0. Default value is 1.
         """
-        self.r0 = rad0
         self.r1 = rad1
 
     def set_cells(self):
@@ -136,15 +133,40 @@ class Monolayer:
             cell_positions = cell_positions + x
         return cell_positions
 
+    def simulation_parameters(self, r_max=2.5, mag=0.05, drag=1):
+        """
+        Initialises the simulation parameters.
+
+        Parameters
+        ----------
+        r_max : int, float, optional
+            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
+
+        mag : int, float, optional
+            Magnitude of perturbation. Default is 0.05.
+
+        drag : int, float, optional
+            The drag coefficient. Default is 1.
+        """
+        self.sim_params = (r_max, mag, drag)
+
     def generate_positions(self):
-        # TODO: docstring
+        """
+        Generates a n x 2 array of coordinates for the initial positions of all n cells within the monolayer.
+        Note this generates an array, which is mutable.
+
+        Returns
+        -------
+        np.ndarray
+            n x 2 array of lists, representing the coordinates of each cell.
+        """
         pos = []
         for xi, yi in self.initial_positions:
             coords = np.array([xi, yi])
             pos.append(coords)
-        return pos
+        return np.stack(pos)
 
-    def neighbours(self, cell_index, r_max=2.5):  # May be redundant
+    def neighbours(self, cell_index):  # May be redundant
         """
         Generates a list of the neighbours of a specified cell, where a neighbour is
         another cell in the monolayer whose centre is within the interaction radius (r_max) of the specified cell.
@@ -154,9 +176,6 @@ class Monolayer:
         cell_index : int
             The position index of the cell within the monolayer whose neighbours we seek.
 
-        r_max : int, float
-            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
-
         Returns
         -------
         list
@@ -165,6 +184,7 @@ class Monolayer:
         neighbours = []
         index = -1
         cell_a = self.positions[cell_index]
+        r_max = self.sim_params[0]
         for cell_b in self.positions:
             index += 1
             if np.array_equal(cell_a, cell_b):
@@ -174,7 +194,7 @@ class Monolayer:
                 neighbours.append(index)
         return neighbours
 
-    def interaction_forces(self, cell_index, r_max=2.5):
+    def interaction_forces(self, cell_index):
         """
         Generates the interaction forces acting on a particular cell in the monolayer, caused by the other cells
         present in the monolayer.
@@ -184,16 +204,13 @@ class Monolayer:
         cell_index : int
             The position index of the cell within the monolayer whose neighbours we seek.
 
-        r_max : int, float
-            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
-
         Returns
         -------
         list
             A list of the index values of each neighbour of cell_a.
         """
         cell_a = self.positions[cell_index]
-        neighbours = self.neighbours(cell_index, r_max)
+        neighbours = self.neighbours(cell_index)
         forces = [0] * self.num_cells
         for index_b in neighbours:
             cell_b = self.positions[index_b]
@@ -202,7 +219,7 @@ class Monolayer:
             r_hat = r/dist  # Unit vector between cell centres
             a_type = self.cell_types[cell_index]
             if self.cell_types[index_b] != a_type:  # If cell_a and cell_b are not the same type
-                mu = self.mu_het  # Use heterotypic spring constant
+                mu = self.mu * self.lam  # Use heterotypic spring constant
                 s = self.r0 + self.r1  # Natural seperation of cells
             else:
                 mu = self.mu  # Use spring constant
@@ -214,7 +231,7 @@ class Monolayer:
             forces[index_b] = f
         return forces
 
-    def simulate_step(self, time_step=0.005, mag=0.05, drag=1, r_max=2.5):
+    def simulate_step(self, time_step=0.005):
         """
         Simulates one time step of the model, using a forward-Euler time step equation, and updates the
         position of each cell in the monolayer accordingly.
@@ -223,35 +240,30 @@ class Monolayer:
         ----------
         time_step : int, float
             The time step of the simulation, in hours. Default is 0.005.
-
-        mag : int, float
-            Magnitude of perturbation. Default is 0.05.
-
-        drag : int, float
-            The maximum euclidean distance permitting interaction between two cells. Default is 1.
-
-        r_max : int, float
-            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
         """
+        mag, drag = self.sim_params[1:3]
         index = -1
         updated_positions = self.positions
         for position in self.positions:
             index += 1
-            int_forces = sum(self.interaction_forces(index, r_max))
+            int_forces = sum(self.interaction_forces(index))
             net_force = int_forces + rand_pert(mag, time_step)
             new_position = position + np.round(time_step * net_force / drag, 3)
             if 0 <= new_position[0] <= self.size and 0 <= new_position[1] <= self.size:  # Accepting any moves in domain
-                updated_positions[index] = new_position
+                updated_positions[index] = new_position  # Note here this algorithm assumes all cells move
+                # simultaneously which seems a reasonable assumption for small time steps
         self.positions = updated_positions
         self.sim_time += time_step
         self.sim_time = round(self.sim_time, 3)
 
     def reset(self):
-        # TODO: docstring
+        """
+        Resets the entire monolayer to the initial position state, setting the simulation time count back to 0.
+        """
         self.positions = self.generate_positions()
         self.sim_time = 0
 
-    def simulate(self, end_time=100, time_step=0.005, mag=0.05, drag=1, r_max=2.5):
+    def simulate(self, end_time=100, time_step=0.005):
         """
         Simulates the model until 'end_time', using a forward-Euler time step equation.
 
@@ -263,23 +275,15 @@ class Monolayer:
         time_step : int, float
             The time step of the simulation, in hours. Default is 0.005.
 
-        mag : int, float
-            Magnitude of perturbation. Default is 0.05.
-
-        drag : int, float
-            The maximum euclidean distance permitting interaction between two cells. Default is 1.
-
-        r_max : int, float
-            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
         """
         if end_time < self.sim_time:  # If the desired simulation time has already been passed, reset cells
             self.reset()
         length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
         its = math.ceil(length/time_step)  # Calculate number of iterations needed for end time to be reached
         for _ in list(range(its)):
-            self.simulate_step(time_step, mag, drag, r_max)
+            self.simulate_step(time_step)
 
-    def show_cells(self, time=0, time_step=0.005, mag=0.005, drag=1, r_max=2.5, show_interactions=False):
+    def show_cells(self, time=0, time_step=0.005, show_interactions=False):
         """
         Shows a visual representation of the cell configuration at time 'time'.
         Note: For computational efficiency, if plotting multiple times it is best to do so in chronological order.
@@ -292,33 +296,25 @@ class Monolayer:
         time_step : int, float
             The time step of the simulation, in hours. Default is 0.005.
 
-        mag : int, float
-            Magnitude of perturbation. Default is 0.05.
-
-        drag : int, float
-            The maximum euclidean distance permitting interaction between two cells. Default is 1.
-
-        r_max : int, float
-            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
-
         show_interactions : bool
             'True' will show the interaction areas of each cell. Default is False.
         """
-        # TODO: refactor
         vmax = self.size
         radius = max(self.r0, self.r1)
         cell_types = self.cell_types
+        r_max, mag, drag = self.sim_params
         fig, ax = plt.subplots()
         ax.set_xlim(-radius, vmax + radius)
         ax.set_ylim(-radius, vmax + radius)
         ax.set_aspect(1)
         ax.set_yticklabels([])
         ax.set_xticklabels([])
-        self.simulate(time, time_step, mag, drag, r_max)
-        pos = np.stack(self.positions)
+        self.simulate(time, time_step)
+        pos = self.positions
         for xi, yi, ti in zip(pos[:, 0], pos[:, 1], cell_types):
             if show_interactions:
-                interaction_zone = plt.Circle((xi, yi), radius=r_max, facecolor='grey', edgecolor='k', alpha=0.15)
+                interaction_zone = plt.Circle((xi, yi), radius=r_max,
+                                              facecolor='grey', edgecolor='k', alpha=0.15)
                 fig.gca().add_artist(interaction_zone)
             if ti == 0:
                 cell_colour = 'plum'
@@ -336,7 +332,7 @@ class Monolayer:
             int_patch = mpatches.Patch(facecolor='grey', edgecolor='k', alpha=0.15, label='Interaction')
             leg.append(int_patch)
         plt.legend(handles=leg, bbox_to_anchor=((3-len(leg))/6, -0.15, len(leg)/3, .102), loc='upper left',
-           ncol=len(leg), mode="expand", borderaxespad=0.)
+                   ncol=len(leg), mode="expand", borderaxespad=0.)
         plt.show()
 
 
