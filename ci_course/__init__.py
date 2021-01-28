@@ -1,7 +1,8 @@
-from .functionality import greet
-from .functionality import minimum
-from .main import *
+from .main import rand_pert
+from .main import uniform_coords
+from .main import Monolayer
 
-__all__ = ['greet', 'minimum', 'rand_pert']
+
+__all__ = ['rand_pert', 'uniform_coords', 'Monolayer']
 
 # TODO: Is this file needed? Internet suggests can be empty
