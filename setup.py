@@ -24,6 +24,8 @@ setup(
         'dev': [
             'flake8',
             'pytest',
+            'coverage',
+            'codecov'
         ],
     },
 
