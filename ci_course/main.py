@@ -166,7 +166,7 @@ class Monolayer:
             pos.append(coords)
         return np.stack(pos)
 
-    def neighbours(self, cell_index):  # May be redundant
+    def neighbours(self, cell_index):  # TODO: COULD MAKE MORE COMP EFFICIENT.
         """
         Generates a list of the neighbours of a specified cell, where a neighbour is
         another cell in the monolayer whose centre is within the interaction radius (r_max) of the specified cell.
