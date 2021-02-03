@@ -22,14 +22,20 @@ def test_set_mu():
     Test the function `Monlayer.set_mu` in main.py
     """
     x = bsp.Monolayer(1)
+    assert x.mu == 50
 
-    assert x.mu == 50 and x.lam == 0.1
+    x.set_mu(16)
+    assert x.mu == 16
 
-    x.set_mu(5)
-    assert x.mu == 5 and x.lam == 0.1
+def test_set_lam():
+    """
+    Test the function `Monlayer.set_lam` in main.py
+    """
+    x = bsp.Monolayer(1)
+    assert x.lam == 0.1
 
-    x.set_mu(lam=1)
-    assert x.mu == 5 and x.lam == 1
+    x.set_lam(1)
+    assert x.lam == 1
 
 def test_set_k_c():
     """
@@ -39,14 +45,14 @@ def test_set_k_c():
     assert x.k_c == 5
 
     x.set_k_c(16)
-    assert x.mu == 16
+    assert x.k_c == 16
 
 def test_set_radius():
     """
     Test the function `Monlayer.set_radius` in main.py
     """
     x = bsp.Monolayer(1)
-    assert x.r_0 == 1 and x.r_1 == 1
+    assert x.r0 == 1 and x.r1 == 1
 
     x.set_radius(16)
-    assert x.r_0 == 1 and x.r_1 == 16
+    assert x.r0 == 1 and x.r1 == 16

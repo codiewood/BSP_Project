@@ -81,22 +81,29 @@ class Monolayer:
         self.sim_time = 0
         self.sim_params = (2.5, 0.05, 1)
 
-    def set_mu(self, mu=50, lam=0.1):
+    def set_mu(self, mu):
         """
-        Initialises spring constants of the cells in the monolayer.
+        Initialises spring constant of the cells in the monolayer.
 
         Parameters
         ----------
         mu : int, float
             Spring constant. Default value is 50.
+        """
+        self.mu = mu
 
+    def set_lam(self, lam):
+        """
+        Initialises scale factor by which to multiply the spring contanst in the heterotypic interaction.
+
+        Parameters
+        ----------
         lam : int, float
             Multiplicative scaling factor used to determine heterotypic spring constant. Default value is 0.1.
         """
-        self.mu = mu
         self.lam = lam
 
-    def set_k_c(self, k_c=5):
+    def set_k_c(self, k_c):
         """
         Initialises decay of attraction force of the cells in the monolayer.
 
@@ -107,7 +114,7 @@ class Monolayer:
         """
         self.k_c = k_c
 
-    def set_radius(self, rad1=1):
+    def set_radius(self, rad1):
         """
         Initialises differing radii of the cells in the monolayer. Radius of cell type 0 is taken as 1 unit.
 
