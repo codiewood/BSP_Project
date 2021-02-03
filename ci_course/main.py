@@ -166,7 +166,7 @@ class Monolayer:
             pos.append(coords)
         return np.stack(pos)
 
-    def neighbours(self, cell_index):  # TODO: COULD MAKE MORE COMP EFFICIENT.
+    def neighbours(self, cell_index):
         """
         Generates a list of the neighbours of a specified cell, where a neighbour is
         another cell in the monolayer whose centre is within the interaction radius (r_max) of the specified cell.
@@ -335,6 +335,3 @@ class Monolayer:
                    ncol=len(leg), mode="expand", borderaxespad=0.)
         plt.show()
 
-
-# TODO: Find way to get all of cell data in one big array, positions to be array rather than list etc.
-# TODO: Stance on overlap?
