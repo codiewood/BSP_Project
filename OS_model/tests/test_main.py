@@ -9,6 +9,7 @@ def test_rand_pert():
     np.random.seed(1234)
     assert np.round(bsp.rand_pert(1, 1), 5) == np.array([0.66671])
 
+
 def test_uniform_coords():
     """
     Test the function `uniform_coords` in main.py
@@ -27,6 +28,7 @@ def test_set_mu():
     x.set_mu(16)
     assert x.mu == 16
 
+
 def test_set_lam():
     """
     Test the function `Monlayer.set_lam` in main.py
@@ -37,6 +39,7 @@ def test_set_lam():
     x.set_lam(1)
     assert x.lam == 1
 
+
 def test_set_k_c():
     """
     Test the function `Monlayer.set_k_c` in main.py
@@ -46,6 +49,7 @@ def test_set_k_c():
 
     x.set_k_c(16)
     assert x.k_c == 16
+
 
 def test_set_radius():
     """

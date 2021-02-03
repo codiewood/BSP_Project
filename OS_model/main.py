@@ -94,7 +94,7 @@ class Monolayer:
 
     def set_lam(self, lam):
         """
-        Initialises scale factor by which to multiply the spring contanst in the heterotypic interaction.
+        Initialises scale factor by which to multiply the spring constant in the heterotypic interaction.
 
         Parameters
         ----------
@@ -227,10 +227,10 @@ class Monolayer:
             a_type = self.cell_types[cell_index]
             if self.cell_types[index_b] != a_type:  # If cell_a and cell_b are not the same type
                 mu = self.mu * self.lam  # Use heterotypic spring constant
-                s = self.r0 + self.r1  # Natural seperation of cells
+                s = self.r0 + self.r1  # Natural separation of cells
             else:
                 mu = self.mu  # Use spring constant
-                s = 2 * (a_type * (self.r1 - self.r0) + self.r0)  # Natural seperation of cells
+                s = 2 * (a_type * (self.r1 - self.r0) + self.r0)  # Natural separation of cells
             if dist < s:
                 f = mu * r_hat * log(1 + (dist - s)/s)
             else:
@@ -341,4 +341,3 @@ class Monolayer:
         plt.legend(handles=leg, bbox_to_anchor=((3-len(leg))/6, -0.15, len(leg)/3, .102), loc='upper left',
                    ncol=len(leg), mode="expand", borderaxespad=0.)
         plt.show()
-
