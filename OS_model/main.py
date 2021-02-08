@@ -216,18 +216,18 @@ class Monolayer:
                     cell_b = cell_positions[cell_b_index]
                     b_type = cell_types[cell_b_index]
                     dist = euclidean(cell_a, cell_b)
-                    r = cell_b - cell_a
+                    r = cell_b - cell_a  # Vector from cell a to cell b
                     r_hat = r / dist  # Unit vector between cell centres
+                    natural_separation = (a_type + b_type) * (self.r1 - self.r0) + 2 * self.r0
                     if b_type != a_type:  # If cell_a and cell_b are not the same type
                         mu = self.mu * self.lam  # Use heterotypic spring constant
-                        s = self.r0 + self.r1  # Natural separation of cells
                     else:
                         mu = self.mu  # Use spring constant
-                        s = 2 * (a_type * (self.r1 - self.r0) + self.r0)  # Natural separation of cells
-                    if dist < s:  # If cells are overlapping
-                        f = mu * r_hat * log(1 + (dist - s) / s)
+                    gap = dist - natural_separation
+                    if gap < 0:  # Overlapping cells
+                        f = mu * r_hat * log(1 + gap / natural_separation)
                     else:  # If cells are not overlapping but are within interaction radius
-                        f = mu * (dist - s) * r_hat * exp(-self.k_c * (dist - s) / s)
+                        f = mu * gap * r_hat * exp(-self.k_c * gap / natural_separation)
                     forces[cell_a_index, cell_b_index] = f
             cell_a_index += 1  # Move to next cell
         return forces
@@ -245,22 +245,20 @@ class Monolayer:
         mag, drag = self.sim_params[1:3]
         cell_count = self.num_cells
         cell_index = 0
-        updated_positions = self.positions
+        positions_for_update = self.positions
         forces = self.interaction_forces()
         while cell_index < cell_count:
-            current_position = self.positions[cell_index]
+            current_position = positions_for_update[cell_index]
             cell_forces = forces[cell_index]
             interaction_forces = sum(cell_forces[:])
-            net_force = np.zeros(2)
             new_position = np.zeros(2)
             for i in range(2):
-                net_force[i] = interaction_forces[i] + rand_pert(mag, time_step)
-                new_position[i] = current_position[i] + np.round(time_step * net_force[i] / drag, 3)
+                net_force = interaction_forces[i] + rand_pert(mag, time_step)
+                new_position[i] = current_position[i] + np.round(time_step * net_force / drag, 3)
             if 0 <= new_position[0] <= self.size and 0 <= new_position[1] <= self.size:  # Accepting any moves in domain
-                updated_positions[cell_index] = new_position  # Note here this algorithm assumes all cells move
+                positions_for_update[cell_index] = new_position  # Note here this algorithm assumes all cells move
                 # simultaneously which seems a reasonable assumption for small time steps
             cell_index += 1
-        self.positions = updated_positions
         self.sim_time += time_step
         self.sim_time = round(self.sim_time, 3)
 
