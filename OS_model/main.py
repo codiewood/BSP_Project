@@ -22,7 +22,7 @@ def rand_pert(mag, time_step):
 
     Returns
     -------
-    numpy.array
+    float
         The random perturbation force.
     """
     x = random.normal(0, 1)
@@ -41,7 +41,7 @@ def uniform_coords(lim):
 
     Returns
     -------
-    numpy.array
+    tuple
         2D coordinates.
     """
     x = round(random.uniform(lim), 3)
@@ -52,6 +52,7 @@ def uniform_coords(lim):
 
 class Monolayer:
     """Monolayer of cells in 2D space"""
+
     def __init__(self, n, p=0.5, size=20):
         """
         Initialises properties of the monolayer.
@@ -174,35 +175,7 @@ class Monolayer:
             pos.append(coords)
         return np.stack(pos)
 
-    def neighbours(self, cell_index):
-        """
-        Generates a list of the neighbours of a specified cell, where a neighbour is
-        another cell in the monolayer whose centre is within the interaction radius (r_max) of the specified cell.
-
-        Parameters
-        ----------
-        cell_index : int
-            The position index of the cell within the monolayer whose neighbours we seek.
-
-        Returns
-        -------
-        list
-            A list of the index values of each neighbour of cell_a.
-        """
-        neighbours = []
-        index = -1
-        cell_a = self.positions[cell_index]
-        r_max = self.sim_params[0]
-        for cell_b in self.positions:
-            index += 1
-            if np.array_equal(cell_a, cell_b):
-                continue
-            dist = euclidean(cell_a, cell_b)
-            if dist < r_max:
-                neighbours.append(index)
-        return neighbours
-
-    def neighbours_updated(self):
+    def neighbours(self):
         """
         Generates a list of the neighbours of each cell in the monolayer, where a neighbour is
         another cell in the monolayer whose centre is within the interaction radius (r_max) of the specified cell.
@@ -215,64 +188,27 @@ class Monolayer:
         cell_positions = self.positions
         cell_tree = spatial.KDTree(cell_positions)
         r_max = self.sim_params[0]
-        neighbours = cell_tree.query_ball_tree(cell_tree,r=r_max)
+        neighbours = cell_tree.query_ball_tree(cell_tree, r=r_max)
         return neighbours
 
-    def interaction_forces(self, cell_index):
-        """
-        Generates the interaction forces acting on a particular cell in the monolayer, caused by the other cells
-        present in the monolayer.
-
-        Parameters
-        ----------
-        cell_index : int
-            The position index of the cell within the monolayer whose neighbours we seek.
-
-        Returns
-        -------
-        list
-            A list of the index values of each neighbour of cell_a.
-        """
-        cell_a = self.positions[cell_index]
-        neighbours = self.neighbours(cell_index)
-        forces = [0] * self.num_cells
-        for index_b in neighbours:
-            cell_b = self.positions[index_b]
-            dist = euclidean(cell_a, cell_b)
-            r = cell_b - cell_a
-            r_hat = r/dist  # Unit vector between cell centres
-            a_type = self.cell_types[cell_index]
-            if self.cell_types[index_b] != a_type:  # If cell_a and cell_b are not the same type
-                mu = self.mu * self.lam  # Use heterotypic spring constant
-                s = self.r0 + self.r1  # Natural separation of cells
-            else:
-                mu = self.mu  # Use spring constant
-                s = 2 * (a_type * (self.r1 - self.r0) + self.r0)  # Natural separation of cells
-            if dist < s:
-                f = mu * r_hat * log(1 + (dist - s)/s)
-            else:
-                f = mu * (dist - s) * r_hat * exp(-self.k_c * (dist - s)/s)
-            forces[index_b] = f
-        return forces
-
-    def interaction_forces_updated(self):
+    def interaction_forces(self):
         """
         Generates the interaction forces acting on all cells in the monolayer, caused by the other cells
         present in the monolayer.
 
         Returns
         -------
-        np.array
-            A nxn array, where n is the number of cells in the monolayer, where the [i,j] entry is the force acting
-            on cell i caused by cell j.
+        numpy.array
+            A n x n x 2 array, where n is the number of cells in the monolayer, where the [i,j] entry contains
+            the 2D force acting on cell i caused by cell j.
         """
         cell_positions = self.positions
         cell_types = self.cell_types
         cell_count = self.num_cells
-        neighbours = self.neighbours_updated()
-        forces = np.zeros((cell_count,cell_count))
+        neighbours = self.neighbours()
+        forces = np.zeros((cell_count, cell_count, 2))
         cell_a_index = 0
-        while cell_a_index <= cell_count:
+        while cell_a_index < cell_count:
             cell_a = cell_positions[cell_a_index]
             a_type = cell_types[cell_a_index]
             for cell_b_index in neighbours[cell_a_index]:
@@ -281,19 +217,19 @@ class Monolayer:
                     b_type = cell_types[cell_b_index]
                     dist = euclidean(cell_a, cell_b)
                     r = cell_b - cell_a
-                    r_hat = r/dist  # Unit vector between cell centres
+                    r_hat = r / dist  # Unit vector between cell centres
                     if b_type != a_type:  # If cell_a and cell_b are not the same type
                         mu = self.mu * self.lam  # Use heterotypic spring constant
                         s = self.r0 + self.r1  # Natural separation of cells
                     else:
                         mu = self.mu  # Use spring constant
                         s = 2 * (a_type * (self.r1 - self.r0) + self.r0)  # Natural separation of cells
-                    if dist < s: # If cells are overlapping
-                        f = mu * r_hat * log(1 + (dist - s)/s)
-                    else: # If cells are not overlapping but are within interaction radius
-                        f = mu * (dist - s) * r_hat * exp(-self.k_c * (dist - s)/s)
-                    forces[cell_a_index,cell_b_index] = f # ERROR HERE
-            cell_a_index += 1 # Move to next cell
+                    if dist < s:  # If cells are overlapping
+                        f = mu * r_hat * log(1 + (dist - s) / s)
+                    else:  # If cells are not overlapping but are within interaction radius
+                        f = mu * (dist - s) * r_hat * exp(-self.k_c * (dist - s) / s)
+                    forces[cell_a_index, cell_b_index] = f
+            cell_a_index += 1  # Move to next cell
         return forces
 
     def simulate_step(self, time_step=0.005):
@@ -307,39 +243,19 @@ class Monolayer:
             The time step of the simulation, in hours. Default is 0.005.
         """
         mag, drag = self.sim_params[1:3]
-        index = -1
-        updated_positions = self.positions
-        for position in self.positions:
-            index += 1
-            int_forces = sum(self.interaction_forces(index))
-            net_force = int_forces + rand_pert(mag, time_step)
-            new_position = position + np.round(time_step * net_force / drag, 3)
-            if 0 <= new_position[0] <= self.size and 0 <= new_position[1] <= self.size:  # Accepting any moves in domain
-                updated_positions[index] = new_position  # Note here this algorithm assumes all cells move
-                # simultaneously which seems a reasonable assumption for small time steps
-        self.positions = updated_positions
-        self.sim_time += time_step
-        self.sim_time = round(self.sim_time, 3)
-
-    def simulate_step_updated(self, time_step=0.005):
-        """
-        Simulates one time step of the model, using a forward-Euler time step equation, and updates the
-        position of each cell in the monolayer accordingly.
-
-        Parameters
-        ----------
-        time_step : int, float
-            The time step of the simulation, in hours. Default is 0.005.
-        """
-        mag, drag = self.sim_params[1:3]
+        cell_count = self.num_cells
         cell_index = 0
         updated_positions = self.positions
-        forces = self.interaction_forces_updated()
-        while cell_index <= cell_count:
+        forces = self.interaction_forces()
+        while cell_index < cell_count:
             current_position = self.positions[cell_index]
-            interaction_forces = sum(forces[cell_index,])
-            net_force = interaction_forces + rand_pert(mag, time_step)
-            new_position = current_position + np.round(time_step * net_force / drag, 3)
+            cell_forces = forces[cell_index]
+            interaction_forces = sum(cell_forces[:])
+            net_force = np.zeros(2)
+            new_position = np.zeros(2)
+            for i in range(2):
+                net_force[i] = interaction_forces[i] + rand_pert(mag, time_step)
+                new_position[i] = current_position[i] + np.round(time_step * net_force[i] / drag, 3)
             if 0 <= new_position[0] <= self.size and 0 <= new_position[1] <= self.size:  # Accepting any moves in domain
                 updated_positions[cell_index] = new_position  # Note here this algorithm assumes all cells move
                 # simultaneously which seems a reasonable assumption for small time steps
@@ -355,14 +271,14 @@ class Monolayer:
         self.positions = self.generate_positions()
         self.sim_time = 0
 
-    def simulate(self, end_time=100, time_step=0.005):
+    def simulate(self, end_time, time_step=0.005):
         """
         Simulates the model until 'end_time', using a forward-Euler time step equation.
 
         Parameters
         ----------
         end_time : int, float
-            The end time of the simulation, in hours. Default is 100.
+            The end time of the simulation, in hours.
 
         time_step : int, float
             The time step of the simulation, in hours. Default is 0.005.
@@ -370,30 +286,11 @@ class Monolayer:
         """
         if end_time < self.sim_time:  # If the desired simulation time has already been passed, reset cells
             self.reset()
-        length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
-        its = math.ceil(length/time_step)  # Calculate number of iterations needed for end time to be reached
-        for _ in list(range(its)):
-            self.simulate_step(time_step)
-
-    def simulate_updated(self, end_time=100, time_step=0.005):
-        """
-        Simulates the model until 'end_time', using a forward-Euler time step equation.
-
-        Parameters
-        ----------
-        end_time : int, float
-            The end time of the simulation, in hours. Default is 100.
-
-        time_step : int, float
-            The time step of the simulation, in hours. Default is 0.005.
-
-        """
-        if end_time < self.sim_time:  # If the desired simulation time has already been passed, reset cells
-            self.reset()
-        length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
-        its = math.ceil(length/time_step)  # Calculate number of iterations needed for end time to be reached
-        for _ in list(range(its)):
-            self.simulate_step_updated(time_step)
+        elif end_time != self.sim_time:
+            length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
+            its = math.ceil(length / time_step)  # Calculate number of iterations needed for end time to be reached
+            for _ in range(its):
+                self.simulate_step(time_step)
 
     def show_cells(self, time=0, time_step=0.005, show_interactions=False):
         """
@@ -443,58 +340,6 @@ class Monolayer:
         if show_interactions:
             int_patch = mpatches.Patch(facecolor='grey', edgecolor='k', alpha=0.15, label='Interaction')
             leg.append(int_patch)
-        plt.legend(handles=leg, bbox_to_anchor=((3-len(leg))/6, -0.15, len(leg)/3, .102), loc='upper left',
-                   ncol=len(leg), mode="expand", borderaxespad=0.)
-        plt.show()
-
-    def show_cells_updated(self, time=0, time_step=0.005, show_interactions=False):
-        """
-        Shows a visual representation of the cell configuration at time 'time'.
-        Note: For computational efficiency, if plotting multiple times it is best to do so in chronological order.
-
-        Parameters
-        ----------
-        time : int, float
-            The time at which the cells are shown, in hours. Default is 0.
-
-        time_step : int, float
-            The time step of the simulation, in hours. Default is 0.005.
-
-        show_interactions : bool
-            'True' will show the interaction areas of each cell. Default is False.
-        """
-        vmax = self.size
-        radius = max(self.r0, self.r1)
-        cell_types = self.cell_types
-        r_max, mag, drag = self.sim_params
-        fig, ax = plt.subplots()
-        ax.set_xlim(-radius, vmax + radius)
-        ax.set_ylim(-radius, vmax + radius)
-        ax.set_aspect(1)
-        ax.set_yticklabels([])
-        ax.set_xticklabels([])
-        self.simulate_updated(time, time_step)
-        pos = self.positions
-        for xi, yi, ti in zip(pos[:, 0], pos[:, 1], cell_types):
-            if show_interactions:
-                interaction_zone = plt.Circle((xi, yi), radius=r_max,
-                                              facecolor='grey', edgecolor='k', alpha=0.15)
-                fig.gca().add_artist(interaction_zone)
-            if ti == 0:
-                cell_colour = 'plum'
-                cell_radius = self.r0
-            else:
-                cell_colour = 'royalblue'
-                cell_radius = self.r1
-            cell = plt.Circle((xi, yi), radius=cell_radius, facecolor=cell_colour, edgecolor='k')
-            fig.gca().add_artist(cell)
-        plt.title('Cells at ' + str(self.sim_time) + ' hours')
-        plum_patch = mpatches.Patch(facecolor='plum', edgecolor='k', label='Type 0')
-        blue_patch = mpatches.Patch(facecolor='royalblue', edgecolor='k', label='Type 1')
-        leg = [plum_patch, blue_patch]
-        if show_interactions:
-            int_patch = mpatches.Patch(facecolor='grey', edgecolor='k', alpha=0.15, label='Interaction')
-            leg.append(int_patch)
-        plt.legend(handles=leg, bbox_to_anchor=((3-len(leg))/6, -0.15, len(leg)/3, .102), loc='upper left',
+        plt.legend(handles=leg, bbox_to_anchor=((3 - len(leg)) / 6, -0.15, len(leg) / 3, .102), loc='upper left',
                    ncol=len(leg), mode="expand", borderaxespad=0.)
         plt.show()
