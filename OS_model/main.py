@@ -72,16 +72,17 @@ class Monolayer:
         self.size = size
         self.type_0 = round(n * p)
         self.type_1 = n - self.type_0
-        self.initial_positions = self.set_cells()
-        self.positions = self.generate_positions()
-        self.cell_types = [0] * self.type_0 + [1] * self.type_1
         self.mu = 50
         self.lam = 0.1
         self.k_c = 5
+        self.k_pert = 1
         self.r0 = 1
         self.r1 = 1
         self.sim_time = 0
         self.sim_params = (2.5, 0.05, 1)
+        self.initial_positions = self.set_random_cells()
+        self.positions = self.generate_initial_positions_array()
+        self.cell_types = [0] * self.type_0 + [1] * self.type_1
 
     def set_mu(self, mu):
         """
@@ -116,6 +117,17 @@ class Monolayer:
         """
         self.k_c = k_c
 
+    def set_k_pert(self, k_pert):
+        """
+        Initialises decay of attraction force of the cells in the monolayer.
+
+        Parameters
+        ----------
+        k_pert : int, float
+            Multiplicative scaling factor of the perturbation magnitude. Default value is 1.
+        """
+        self.k_pert = k_pert
+
     def set_radius(self, rad1):
         """
         Initialises differing radii of the cells in the monolayer. Radius of cell type 0 is taken as 1 unit.
@@ -127,22 +139,7 @@ class Monolayer:
         """
         self.r1 = rad1
 
-    def set_cells(self):
-        """
-        Generates a tuple of coordinates for the initial positions of all cells within the monolayer.
-
-        Returns
-        -------
-        tuple
-            Tuple of tuples, representing the initial (random) coordinates of each cell.
-        """
-        cell_positions = ()
-        for _ in list(range(self.num_cells)):
-            x = (uniform_coords(self.size),)
-            cell_positions = cell_positions + x
-        return cell_positions
-
-    def simulation_parameters(self, r_max=2.5, mag=0.05, drag=1):
+    def simulation_parameters(self, r_max, mag, drag):
         """
         Initialises the simulation parameters.
 
@@ -159,7 +156,42 @@ class Monolayer:
         """
         self.sim_params = (r_max, mag, drag)
 
-    def generate_positions(self):
+    def set_random_cells(self):
+        """
+        Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
+        where each cell centre is random (uniformly distributed).
+
+        Returns
+        -------
+        tuple
+            Tuple of tuples, representing the initial (random) coordinates of each cell.
+        """
+        cell_positions = ()
+        for _ in range(self.num_cells):
+            x = (uniform_coords(self.size),)
+            cell_positions = cell_positions + x
+        return cell_positions
+
+    # def set_hexagonal_grid_cells(self):
+    #     """
+    #     Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
+    #     where cells are placed on a hexagonal grid.
+    #
+    #     Returns
+    #     -------
+    #     tuple
+    #         Tuple of tuples, representing the initial (random) coordinates of each cell.
+    #     """
+    #     size = self.size
+    #     radius = max(self.r0, self.r1)
+    #     cell_positions = ((size/2, size/2),)
+    #     for i in range(self.num_cells):
+    #         xi, yi = cell_positions[i] - (2*radius, 0)
+    #         x = ((xi,yi),)
+    #         cell_positions = cell_positions + x
+    #     return cell_positions
+
+    def generate_initial_positions_array(self):
         """
         Generates a n x 2 array of coordinates for the initial positions of all n cells within the monolayer.
         Note this generates an array, which is mutable.
@@ -169,11 +201,11 @@ class Monolayer:
         np.ndarray
             n x 2 array of lists, representing the coordinates of each cell.
         """
-        pos = []
+        mutable_positions = []
         for xi, yi in self.initial_positions:
             coords = np.array([xi, yi])
-            pos.append(coords)
-        return np.stack(pos)
+            mutable_positions.append(coords)
+        return np.stack(mutable_positions)
 
     def neighbours(self):
         """
@@ -209,6 +241,7 @@ class Monolayer:
         forces = np.zeros((cell_count, cell_count, 2))
         cell_a_index = 0
         while cell_a_index < cell_count:
+            # for cell_a_index in range(cell_count): appears to be less efficient?
             cell_a = cell_positions[cell_a_index]
             a_type = cell_types[cell_a_index]
             for cell_b_index in neighbours[cell_a_index]:
@@ -229,7 +262,7 @@ class Monolayer:
                     else:  # If cells are not overlapping but are within interaction radius
                         f = mu * gap * r_hat * exp(-self.k_c * gap / natural_separation)
                     forces[cell_a_index, cell_b_index] = f
-            cell_a_index += 1  # Move to next cell
+            cell_a_index += 1
         return forces
 
     def simulate_step(self, time_step=0.005):
@@ -243,17 +276,19 @@ class Monolayer:
             The time step of the simulation, in hours. Default is 0.005.
         """
         mag, drag = self.sim_params[1:3]
+        k_pert = self.k_pert
         cell_count = self.num_cells
-        cell_index = 0
         positions_for_update = self.positions
         forces = self.interaction_forces()
+        cell_index = 0
         while cell_index < cell_count:
+            # for cell_index in range(cell_count): ??
             current_position = positions_for_update[cell_index]
             cell_forces = forces[cell_index]
             interaction_forces = sum(cell_forces[:])
             new_position = np.zeros(2)
             for i in range(2):
-                net_force = interaction_forces[i] + rand_pert(mag, time_step)
+                net_force = interaction_forces[i] + rand_pert(k_pert * mag, time_step)
                 new_position[i] = current_position[i] + np.round(time_step * net_force / drag, 3)
             if 0 <= new_position[0] <= self.size and 0 <= new_position[1] <= self.size:  # Accepting any moves in domain
                 positions_for_update[cell_index] = new_position  # Note here this algorithm assumes all cells move
@@ -266,7 +301,7 @@ class Monolayer:
         """
         Resets the entire monolayer to the initial position state, setting the simulation time count back to 0.
         """
-        self.positions = self.generate_positions()
+        self.positions = self.generate_initial_positions_array()
         self.sim_time = 0
 
     def simulate(self, end_time, time_step=0.005):
@@ -309,16 +344,24 @@ class Monolayer:
         vmax = self.size
         radius = max(self.r0, self.r1)
         cell_types = self.cell_types
-        r_max, mag, drag = self.sim_params
+        r_max = self.sim_params[0]
         fig, ax = plt.subplots()
         ax.set_xlim(-radius, vmax + radius)
         ax.set_ylim(-radius, vmax + radius)
         ax.set_aspect(1)
         ax.set_yticklabels([])
         ax.set_xticklabels([])
+        plum_patch = mpatches.Patch(facecolor='plum', edgecolor='k', label='Type 0')
+        blue_patch = mpatches.Patch(facecolor='royalblue', edgecolor='k', label='Type 1')
+        leg = [plum_patch, blue_patch]
+        if show_interactions:
+            int_patch = mpatches.Patch(facecolor='grey', edgecolor='k', alpha=0.15, label='Interaction')
+            leg.append(int_patch)
+        plt.legend(handles=leg, bbox_to_anchor=((3 - len(leg)) / 6, -0.15, len(leg) / 3, .102), loc='upper left',
+                   ncol=len(leg), mode="expand", borderaxespad=0.)
         self.simulate(time, time_step)
-        pos = self.positions
-        for xi, yi, ti in zip(pos[:, 0], pos[:, 1], cell_types):
+        cell_coordinates = self.positions
+        for xi, yi, ti in zip(cell_coordinates[:, 0], cell_coordinates[:, 1], cell_types):
             if show_interactions:
                 interaction_zone = plt.Circle((xi, yi), radius=r_max,
                                               facecolor='grey', edgecolor='k', alpha=0.15)
@@ -332,12 +375,4 @@ class Monolayer:
             cell = plt.Circle((xi, yi), radius=cell_radius, facecolor=cell_colour, edgecolor='k')
             fig.gca().add_artist(cell)
         plt.title('Cells at ' + str(self.sim_time) + ' hours')
-        plum_patch = mpatches.Patch(facecolor='plum', edgecolor='k', label='Type 0')
-        blue_patch = mpatches.Patch(facecolor='royalblue', edgecolor='k', label='Type 1')
-        leg = [plum_patch, blue_patch]
-        if show_interactions:
-            int_patch = mpatches.Patch(facecolor='grey', edgecolor='k', alpha=0.15, label='Interaction')
-            leg.append(int_patch)
-        plt.legend(handles=leg, bbox_to_anchor=((3 - len(leg)) / 6, -0.15, len(leg) / 3, .102), loc='upper left',
-                   ncol=len(leg), mode="expand", borderaxespad=0.)
         plt.show()
