@@ -225,13 +225,13 @@ class Monolayer:
 
     def interaction_forces(self):
         """
-        Generates the interaction forces acting on all cells in the monolayer, caused by the other cells
+        Generates the interaction forces acting on all n cells in the monolayer, caused by the other cells
         present in the monolayer.
 
         Returns
         -------
         numpy.array
-            A n x n x 2 array, where n is the number of cells in the monolayer, where the [i,j] entry contains
+            A n x n x 2 array, where n is the number of cells in the monolayer. The [i,j] entry contains
             the 2D force acting on cell i caused by cell j.
         """
         cell_positions = self.positions
@@ -250,16 +250,15 @@ class Monolayer:
                     b_type = cell_types[cell_b_index]
                     dist = euclidean(cell_a, cell_b)
                     r = cell_b - cell_a  # Vector from cell a to cell b
-                    r_hat = r / dist  # Unit vector between cell centres
+                    r_hat = r / dist  # Unit vector
                     natural_separation = (a_type + b_type) * (self.r1 - self.r0) + 2 * self.r0
-                    if b_type != a_type:  # If cell_a and cell_b are not the same type
-                        mu = self.mu * self.lam  # Use heterotypic spring constant
-                    else:
-                        mu = self.mu  # Use spring constant
                     gap = dist - natural_separation
-                    if gap < 0:  # Overlapping cells
+                    mu = self.mu
+                    if gap < 0:  # If we have overlapping cells, regardless of type, repulsion occurs
                         f = mu * r_hat * log(1 + gap / natural_separation)
                     else:  # If cells are not overlapping but are within interaction radius
+                        if b_type != a_type:  # If cell_a and cell_b are not the same type
+                            mu *= self.lam  # Use heterotypic spring constant
                         f = mu * gap * r_hat * exp(-self.k_c * gap / natural_separation)
                     forces[cell_a_index, cell_b_index] = f
             cell_a_index += 1
