@@ -324,6 +324,38 @@ class Monolayer:
             for _ in range(its):
                 self.simulate_step(time_step)
 
+    def generate_axes(self, show_interactions=False):
+        """
+        Generates the axes and plot onto which cells can be drawn by the show_cells function.
+
+        Parameters
+        ----------
+        show_interactions : bool
+            'True' will show the interaction areas of each cell. Default is False.
+
+        Returns
+        -------
+        fig, ax :
+            The figure and axis required for plotting.
+        """
+        vmax = self.size
+        radius = max(self.r0, self.r1)
+        fig, ax = plt.subplots()
+        ax.set_xlim(-radius, vmax + radius)
+        ax.set_ylim(-radius, vmax + radius)
+        ax.set_aspect(1)
+        ax.set_yticklabels([])
+        ax.set_xticklabels([])
+        plum_patch = mpatches.Patch(facecolor='plum', edgecolor='k', label='Type 0')
+        blue_patch = mpatches.Patch(facecolor='royalblue', edgecolor='k', label='Type 1')
+        leg = [plum_patch, blue_patch]
+        if show_interactions:
+            int_patch = mpatches.Patch(facecolor='grey', edgecolor='k', alpha=0.15, label='Interaction')
+            leg.append(int_patch)
+        plt.legend(handles=leg, bbox_to_anchor=((3 - len(leg)) / 6, -0.15, len(leg) / 3, .102), loc='upper left',
+                   ncol=len(leg), mode="expand", borderaxespad=0.)
+        return fig, ax
+
     def show_cells(self, time=0, time_step=0.005, show_interactions=False):
         """
         Shows a visual representation of the cell configuration at time 'time'.
@@ -340,24 +372,9 @@ class Monolayer:
         show_interactions : bool
             'True' will show the interaction areas of each cell. Default is False.
         """
-        vmax = self.size
-        radius = max(self.r0, self.r1)
         cell_types = self.cell_types
         r_max = self.sim_params[0]
-        fig, ax = plt.subplots()
-        ax.set_xlim(-radius, vmax + radius)
-        ax.set_ylim(-radius, vmax + radius)
-        ax.set_aspect(1)
-        ax.set_yticklabels([])
-        ax.set_xticklabels([])
-        plum_patch = mpatches.Patch(facecolor='plum', edgecolor='k', label='Type 0')
-        blue_patch = mpatches.Patch(facecolor='royalblue', edgecolor='k', label='Type 1')
-        leg = [plum_patch, blue_patch]
-        if show_interactions:
-            int_patch = mpatches.Patch(facecolor='grey', edgecolor='k', alpha=0.15, label='Interaction')
-            leg.append(int_patch)
-        plt.legend(handles=leg, bbox_to_anchor=((3 - len(leg)) / 6, -0.15, len(leg) / 3, .102), loc='upper left',
-                   ncol=len(leg), mode="expand", borderaxespad=0.)
+        fig, ax = self.generate_axes(show_interactions)
         self.simulate(time, time_step)
         cell_coordinates = self.positions
         for xi, yi, ti in zip(cell_coordinates[:, 0], cell_coordinates[:, 1], cell_types):
