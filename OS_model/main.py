@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import random
 import math
-from math import sqrt, log, exp
+from math import sqrt, log, exp, floor
 from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches
 from scipy import spatial
@@ -53,36 +53,38 @@ def uniform_coords(lim):
 class Monolayer:
     """Monolayer of cells in 2D space"""
 
-    def __init__(self, n, p=0.5, size=20):
+    def __init__(self, p=0.5, size=20, rand=False, n=50):  # Update docstring
         """
         Initialises properties of the monolayer.
 
         Parameters
         ----------
-        n : int
-            Number of cells present in the monolayer
-
         p : int, float
             Proportion of cells which are of Type 0, taking values in [0,1]. Default is 0.5.
 
-        size : int, float
+        size : int
             Size of the monolayer (maximum x and y coordinate for the cell centres). Default is 20.
         """
-        self.num_cells = n
-        self.size = size
-        self.type_0 = round(n * p)
-        self.type_1 = n - self.type_0
         self.mu = 50
         self.lam = 0.1
         self.k_c = 5
         self.k_pert = 1
-        self.r0 = 1
-        self.r1 = 1
         self.sim_time = 0
-        self.sim_params = (2.5, 0.05, 1)
-        self.initial_positions = self.set_random_cells()
+        self.sim_params = (5, 0.05, 1)
+        self.size = size
+        if rand:
+            self.num_cells = n
+            self.initial_positions = self.set_random_cells()
+        else:
+            self.initial_positions = self.set_cell_sheet()
+            self.num_cells = len(self.initial_positions)
         self.positions = self.generate_initial_positions_array()
+        self.type_0 = round(self.num_cells * p)
+        self.type_1 = self.num_cells - self.type_0
         self.cell_types = [0] * self.type_0 + [1] * self.type_1
+        if not rand:
+            random.shuffle(self.cell_types)
+        self.cell_radius = [1] * self.num_cells
 
     def set_mu(self, mu):
         """
@@ -128,17 +130,6 @@ class Monolayer:
         """
         self.k_pert = k_pert
 
-    def set_radius(self, rad1):
-        """
-        Initialises differing radii of the cells in the monolayer. Radius of cell type 0 is taken as 1 unit.
-
-        Parameters
-        ----------
-        rad1 : int, float
-            Radius of cells with type 1, relative to that of cell type 0. Default value is 1.
-        """
-        self.r1 = rad1
-
     def simulation_parameters(self, r_max, mag, drag):
         """
         Initialises the simulation parameters.
@@ -172,24 +163,29 @@ class Monolayer:
             cell_positions = cell_positions + x
         return cell_positions
 
-    # def set_hexagonal_grid_cells(self):
-    #     """
-    #     Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
-    #     where cells are placed on a hexagonal grid.
-    #
-    #     Returns
-    #     -------
-    #     tuple
-    #         Tuple of tuples, representing the initial (random) coordinates of each cell.
-    #     """
-    #     size = self.size
-    #     radius = max(self.r0, self.r1)
-    #     cell_positions = ((size/2, size/2),)
-    #     for i in range(self.num_cells):
-    #         xi, yi = cell_positions[i] - (2*radius, 0)
-    #         x = ((xi,yi),)
-    #         cell_positions = cell_positions + x
-    #     return cell_positions
+    def generate_cell_rows(self, n):  # Docstring
+        x = 1
+        y = sqrt(3) * 2 * n + 1
+        y = round(y, 3)
+        row_switches = 0
+        cell_rows = ()
+        while 1 <= x <= self.size - 1:
+            new_cell = ((x, y),)
+            cell_rows = cell_rows + new_cell
+            x += 1
+            if row_switches / 2 == floor(row_switches / 2):
+                y += sqrt(3)
+            else:
+                y -= sqrt(3)
+            y = round(y, 3)
+            row_switches += 1
+        return cell_rows
+
+    def set_cell_sheet(self):  # Could add extra line of cells here and docstring
+        cell_sheet = ()
+        for i in range(floor(self.size / 4)):
+            cell_sheet = cell_sheet + self.generate_cell_rows(i)
+        return cell_sheet
 
     def generate_initial_positions_array(self):
         """
@@ -234,24 +230,19 @@ class Monolayer:
             A n x n x 2 array, where n is the number of cells in the monolayer. The [i,j] entry contains
             the 2D force acting on cell i caused by cell j.
         """
-        cell_positions = self.positions
-        cell_types = self.cell_types
-        cell_count = self.num_cells
         neighbours = self.neighbours()
-        forces = np.zeros((cell_count, cell_count, 2))
-        cell_a_index = 0
-        while cell_a_index < cell_count:
-            # for cell_a_index in range(cell_count): appears to be less efficient?
-            cell_a = cell_positions[cell_a_index]
-            a_type = cell_types[cell_a_index]
+        forces = np.zeros((self.num_cells, self.num_cells, 2))
+        for cell_a_index in range(self.num_cells):
+            cell_a = self.positions[cell_a_index]
+            a_type = self.cell_types[cell_a_index]
             for cell_b_index in neighbours[cell_a_index]:
-                if cell_b_index != cell_a_index:
-                    cell_b = cell_positions[cell_b_index]
-                    b_type = cell_types[cell_b_index]
+                if cell_b_index > cell_a_index:
+                    cell_b = self.positions[cell_b_index]
+                    b_type = self.cell_types[cell_b_index]
                     dist = euclidean(cell_a, cell_b)
                     r = cell_b - cell_a  # Vector from cell a to cell b
                     r_hat = r / dist  # Unit vector
-                    natural_separation = (a_type + b_type) * (self.r1 - self.r0) + 2 * self.r0
+                    natural_separation = self.cell_radius[cell_a_index] + self.cell_radius[cell_b_index]
                     gap = dist - natural_separation
                     mu = self.mu
                     if gap < 0:  # If we have overlapping cells, regardless of type, repulsion occurs
@@ -261,7 +252,7 @@ class Monolayer:
                             mu *= self.lam  # Use heterotypic spring constant
                         f = mu * gap * r_hat * exp(-self.k_c * gap / natural_separation)
                     forces[cell_a_index, cell_b_index] = f
-            cell_a_index += 1
+                    forces[cell_b_index, cell_a_index] = -f
         return forces
 
     def simulate_step(self, time_step=0.005):
@@ -275,24 +266,19 @@ class Monolayer:
             The time step of the simulation, in hours. Default is 0.005.
         """
         mag, drag = self.sim_params[1:3]
-        k_pert = self.k_pert
-        cell_count = self.num_cells
         positions_for_update = self.positions
         forces = self.interaction_forces()
-        cell_index = 0
-        while cell_index < cell_count:
-            # for cell_index in range(cell_count): ??
+        for cell_index in range(self.num_cells):
             current_position = positions_for_update[cell_index]
             cell_forces = forces[cell_index]
             interaction_forces = sum(cell_forces[:])
             new_position = np.zeros(2)
             for i in range(2):
-                net_force = interaction_forces[i] + rand_pert(k_pert * mag, time_step)
+                net_force = interaction_forces[i] + rand_pert(self.k_pert * mag, time_step)
                 new_position[i] = current_position[i] + np.round(time_step * net_force / drag, 3)
             if 0 <= new_position[0] <= self.size and 0 <= new_position[1] <= self.size:  # Accepting any moves in domain
                 positions_for_update[cell_index] = new_position  # Note here this algorithm assumes all cells move
                 # simultaneously which seems a reasonable assumption for small time steps
-            cell_index += 1
         self.sim_time += time_step
         self.sim_time = round(self.sim_time, 3)
 
@@ -339,7 +325,7 @@ class Monolayer:
             The figure and axis required for plotting.
         """
         vmax = self.size
-        radius = max(self.r0, self.r1)
+        radius = max(self.cell_radius)
         fig, ax = plt.subplots()
         ax.set_xlim(-radius, vmax + radius)
         ax.set_ylim(-radius, vmax + radius)
@@ -372,23 +358,20 @@ class Monolayer:
         show_interactions : bool
             'True' will show the interaction areas of each cell. Default is False.
         """
-        cell_types = self.cell_types
         r_max = self.sim_params[0]
         fig, ax = self.generate_axes(show_interactions)
         self.simulate(time, time_step)
-        cell_coordinates = self.positions
-        for xi, yi, ti in zip(cell_coordinates[:, 0], cell_coordinates[:, 1], cell_types):
+        cell_index = 0
+        for xi, yi, ti in zip(self.positions[:, 0], self.positions[:, 1], self.cell_types):
             if show_interactions:
-                interaction_zone = plt.Circle((xi, yi), radius=r_max,
-                                              facecolor='grey', edgecolor='k', alpha=0.15)
+                interaction_zone = plt.Circle((xi, yi), radius=r_max, facecolor='grey', edgecolor='k', alpha=0.15)
                 fig.gca().add_artist(interaction_zone)
             if ti == 0:
                 cell_colour = 'plum'
-                cell_radius = self.r0
             else:
                 cell_colour = 'royalblue'
-                cell_radius = self.r1
-            cell = plt.Circle((xi, yi), radius=cell_radius, facecolor=cell_colour, edgecolor='k')
+            cell = plt.Circle((xi, yi), radius=self.cell_radius[cell_index], facecolor=cell_colour, edgecolor='k')
             fig.gca().add_artist(cell)
+            cell_index += 1
         plt.title('Cells at ' + str(self.sim_time) + ' hours')
         plt.show()
