@@ -275,6 +275,8 @@ class Monolayer:
                     cell_b = self.positions[cell_b_index]
                     b_type = self.cell_types[cell_b_index]
                     dist = euclidean(cell_a, cell_b)
+                    if dist == 0:
+                        dist += 0.0001
                     r = cell_b - cell_a  # Vector from cell a to cell b
                     r_hat = r / dist  # Unit vector
                     natural_separation = self.cell_radius[cell_a_index] + self.cell_radius[cell_b_index]
