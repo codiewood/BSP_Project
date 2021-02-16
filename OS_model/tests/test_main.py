@@ -3,14 +3,6 @@ import numpy as np
 from numpy import random
 
 
-def test_rand_pert():
-    """
-    Test the function `rand_pert` in main.py
-    """
-    random.seed(1234)
-    assert np.round(OS_model.rand_pert(1, 1), 5) == np.array([0.66671])
-
-
 def test_uniform_coords():
     """
     Test the function `uniform_coords` in main.py
@@ -79,8 +71,8 @@ def test_set_random_cells():
     Test the function `Monolayer.set_random_cells` in main.py
     """
     random.seed(1234)
-    x = OS_model.Monolayer(n=2, rand=True)
-    assert x.initial_positions == ((16.361, 8.18), (11.683, 5.078))
+    x = OS_model.Monolayer(rand=True, n=2)
+    assert x.initial_positions == ((8.276, 4.401), (6.06, 2.932))
 
 
 def test_generate_initial_positions_array():
@@ -118,7 +110,7 @@ def test_reset():
     Test the function `Monolayer.reset` in main.py
     """
     random.seed(1234)
-    x = OS_model.Monolayer(n=2, rand=True)
+    x = OS_model.Monolayer(rand=True)
     x.simulate(1)
     x.reset()
     assert x.sim_time == 0

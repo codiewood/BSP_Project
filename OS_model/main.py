@@ -8,28 +8,6 @@ from scipy import spatial
 from scipy.spatial.distance import euclidean
 
 
-def rand_pert(mag, time_step):
-    """
-    A function that takes a magnitude and time step and generates a random perturbation force.
-
-    Parameters
-    ----------
-    mag : int, float
-        Magnitude of perturbation.
-
-    time_step : int, float
-        The time step of the simulation, in hours.
-
-    Returns
-    -------
-    float
-        The random perturbation force.
-    """
-    x = random.normal(0, 1)
-    force = sqrt(2 * mag / time_step) * x
-    return force
-
-
 def uniform_coords(lim):
     """
     Generates uniformly distributed random coordinates in the 2D square, (0,lim)^2.
@@ -325,20 +303,18 @@ class Monolayer:
         time_step : int, float
             The time step of the simulation, in hours. Default is 0.005.
         """
-        mag, drag = self.sim_params[1:3]
-        positions_for_update = self.positions
-        forces = self.interaction_forces()
+        drag = self.sim_params[2]
+        positions_for_update = np.zeros_like(self.positions)
+        interaction_forces = self.interaction_forces()
+        random_forces = self.random_forces(time_step)
         for cell_index in range(self.num_cells):
-            current_position = positions_for_update[cell_index]
-            cell_forces = forces[cell_index]
-            interaction_forces = sum(cell_forces[:])
-            new_position = np.zeros(2)
-            for i in range(2):
-                net_force = interaction_forces[i] + rand_pert(self.k_pert * mag, time_step)
-                new_position[i] = current_position[i] + np.round(time_step * net_force / drag, 3)
+            current_position = self.positions[cell_index]
+            cell_interaction_force = sum(interaction_forces[cell_index][:])
+            net_force = cell_interaction_force + random_forces[cell_index]
+            new_position = current_position + time_step * net_force / drag
             if 0 <= new_position[0] <= self.size and 0 <= new_position[1] <= self.size:  # Accepting any moves in domain
-                positions_for_update[cell_index] = new_position  # Note here this algorithm assumes all cells move
-                # simultaneously which seems a reasonable assumption for small time steps
+                positions_for_update[cell_index] = new_position
+        self.positions = positions_for_update
         self.sim_time += time_step
         self.sim_time = round(self.sim_time, 3)
 

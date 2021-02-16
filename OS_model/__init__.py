@@ -1,6 +1,5 @@
-from .main import rand_pert
 from .main import uniform_coords
 from .main import Monolayer
 
 
-__all__ = ['rand_pert', 'uniform_coords', 'Monolayer']
+__all__ = ['uniform_coords', 'Monolayer']
