@@ -290,6 +290,29 @@ class Monolayer:
                     forces[cell_b_index, cell_a_index] = -f
         return forces
 
+    def random_forces(self, time_step):
+        """
+        A function that takes a time step and generates random perturbation forces for each cell in the monolayer.
+
+        Parameters
+        ----------
+        time_step : int, float
+            The time step of the simulation, in hours.
+
+        Returns
+        -------
+        force : np.array
+            An n x 2 array of the random perturbation forces acting on each cell in the monolayer,
+            returned to 3 decimal places.
+        """
+        mag = self.sim_params[1]
+        force = np.zeros_like(self.positions)
+        for index in range(self.num_cells):
+            coords = random.normal(0, 1, 2)
+            force[index] = sqrt(2 * self.k_pert * mag / time_step) * coords
+            force = np.round(force, 5)
+        return force
+
     def simulate_step(self, time_step=0.005):
         """
         Simulates one time step of the model, using a forward-Euler time step equation, and updates the
