@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='OS_model',
 
-    version='0.1',
+    version='0.2',
 
     description='Code to simulate cell-cell interactions and differential adhesion experiments'
                 'via an overlapping spheres model with linear force laws and a forward Euler time step',

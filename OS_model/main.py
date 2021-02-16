@@ -53,9 +53,9 @@ def uniform_coords(lim):
 class Monolayer:
     """Monolayer of cells in 2D space"""
 
-    def __init__(self, p=0.5, size=20, rand=False, n=50):  # Update docstring
+    def __init__(self, p=0.5, size=10, rand=False, n=50):
         """
-        Initialises properties of the monolayer.
+        Initialises the monolayer with cells of diameter 1.
 
         Parameters
         ----------
@@ -63,28 +63,36 @@ class Monolayer:
             Proportion of cells which are of Type 0, taking values in [0,1]. Default is 0.5.
 
         size : int
-            Size of the monolayer (maximum x and y coordinate for the cell centres). Default is 20.
+            Size of the monolayer (maximum x and y coordinate for the cell centres). Default is 10.
+
+        rand : bool
+            Determines the initial configuration type in the monolayer. True corresponds to a random distribution
+            of cells in the monolayer, whereas False corresponds to a hexagonal lattice structure. Default is False.
+
+        n : int
+            Number of cells in the monolayer. Only used when rand = True. Default is 50.
         """
         self.mu = 50
         self.lam = 0.1
         self.k_c = 5
         self.k_pert = 1
         self.sim_time = 0
-        self.sim_params = (5, 0.05, 1)
+        self.sim_params = (2.5, 0.05, 1)
         self.size = size
         if rand:
             self.num_cells = n
             self.initial_positions = self.set_random_cells()
         else:
             self.initial_positions = self.set_cell_sheet()
-            self.num_cells = len(self.initial_positions)
         self.positions = self.generate_initial_positions_array()
+        if not rand:
+            self.num_cells = len(self.positions)
         self.type_0 = round(self.num_cells * p)
         self.type_1 = self.num_cells - self.type_0
         self.cell_types = [0] * self.type_0 + [1] * self.type_1
         if not rand:
             random.shuffle(self.cell_types)
-        self.cell_radius = [1] * self.num_cells
+        self.cell_radius = [0.5] * self.num_cells
 
     def set_mu(self, mu):
         """
@@ -121,7 +129,7 @@ class Monolayer:
 
     def set_k_pert(self, k_pert):
         """
-        Initialises decay of attraction force of the cells in the monolayer.
+        Initialises scale factor by which to multiply the random perturbation force acting on cells in the monolayer.
 
         Parameters
         ----------
@@ -136,13 +144,13 @@ class Monolayer:
 
         Parameters
         ----------
-        r_max : int, float, optional
-            The maximum euclidean distance permitting interaction between two cells. Default is 2.5.
+        r_max : int, float
+            The maximum euclidean distance permitting interaction between two cells. Default is 2.5 cell diameters.
 
-        mag : int, float, optional
-            Magnitude of perturbation. Default is 0.05.
+        mag : int, float
+            Base magnitude of perturbation. Default is 0.05.
 
-        drag : int, float, optional
+        drag : int, float
             The drag coefficient. Default is 1.
         """
         self.sim_params = (r_max, mag, drag)
@@ -163,28 +171,55 @@ class Monolayer:
             cell_positions = cell_positions + x
         return cell_positions
 
-    def generate_cell_rows(self, n):  # Docstring
-        x = 1
-        y = sqrt(3) * 2 * n + 1
+    def generate_cell_rows(self, n):
+        """
+        Generates a tuple of coordinates for the initial positions of two rows of cells within the monolayer,
+        where cells are packed into a hexagonal lattice.
+
+        Parameters
+        ----------
+        n : int
+            The iteration index of the function, as it is called by set_cell_sheet. Determines the coordinates of the
+            first cell placed. n = 0 will start from the lower left corner of the domain.
+
+        Returns
+        -------
+        tuple
+            Tuple of tuples, representing the initial coordinates of each cell in a set of two cell rows.
+        """
+        radius = 0.5
+        x = radius
+        y = radius * (sqrt(3) * 2 * n + 1)
         y = round(y, 3)
         row_switches = 0
         cell_rows = ()
-        while 1 <= x <= self.size - 1:
-            new_cell = ((x, y),)
-            cell_rows = cell_rows + new_cell
-            x += 1
-            if row_switches / 2 == floor(row_switches / 2):
-                y += sqrt(3)
+        while radius <= x <= self.size - radius:
+            if radius <= y <= self.size - radius:
+                new_cell = ((x, y),)
+                cell_rows = cell_rows + new_cell
+            x += radius
+            if row_switches / 2 == row_switches // 2:
+                y += sqrt(3) * radius
             else:
-                y -= sqrt(3)
+                y -= sqrt(3) * radius
             y = round(y, 3)
             row_switches += 1
         return cell_rows
 
-    def set_cell_sheet(self):  # Could add extra line of cells here and docstring
+    def set_cell_sheet(self):
+        """
+        Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
+        where cells are packed into a hexagonal lattice.
+
+        Returns
+        -------
+        tuple
+            Tuple of tuples, representing the initial coordinates of each cell in the monolayer.
+        """
+        radius = 0.5
         cell_sheet = ()
-        for i in range(floor(self.size / 4)):
-            cell_sheet = cell_sheet + self.generate_cell_rows(i)
+        for row_set in range(floor(self.size / (2 * radius))):
+            cell_sheet = cell_sheet + self.generate_cell_rows(row_set)
         return cell_sheet
 
     def generate_initial_positions_array(self):
@@ -246,7 +281,7 @@ class Monolayer:
                     gap = dist - natural_separation
                     mu = self.mu
                     if gap < 0:  # If we have overlapping cells, regardless of type, repulsion occurs
-                        f = mu * r_hat * log(1 + gap / natural_separation)
+                        f = mu * natural_separation * r_hat * log(1 + gap / natural_separation)
                     else:  # If cells are not overlapping but are within interaction radius
                         if b_type != a_type:  # If cell_a and cell_b are not the same type
                             mu *= self.lam  # Use heterotypic spring constant
@@ -317,7 +352,7 @@ class Monolayer:
         Parameters
         ----------
         show_interactions : bool
-            'True' will show the interaction areas of each cell. Default is False.
+            'True' will show the interaction areas (with radius r_max) of each cell. Default is False.
 
         Returns
         -------

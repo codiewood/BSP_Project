@@ -68,7 +68,7 @@ def test_simulation_parameters():
     Test the function `Monolayer.simulation_parameters` in main.py
     """
     x = OS_model.Monolayer(1)
-    assert x.sim_params[0] == 5 and x.sim_params[1] == 0.05 and x.sim_params[2] == 1
+    assert x.sim_params[0] == 2.5 and x.sim_params[1] == 0.05 and x.sim_params[2] == 1
 
     x.simulation_parameters(1, 2, 3)
     assert x.sim_params[0] == 1 and x.sim_params[1] == 2 and x.sim_params[2] == 3
