@@ -216,7 +216,7 @@ class Monolayer:
             mutable_positions.append(coords)
         return np.stack(mutable_positions)
 
-    def neighbours(self):
+    def neighbours(self, radius):
         """
         Generates a list of the neighbours of each cell in the monolayer, where a neighbour is
         another cell in the monolayer whose centre is within the interaction radius (r_max) of the specified cell.
@@ -228,8 +228,7 @@ class Monolayer:
         """
         cell_positions = self.positions
         cell_tree = spatial.KDTree(cell_positions)
-        r_max = self.sim_params[0]
-        neighbours = cell_tree.query_ball_tree(cell_tree, r=r_max)
+        neighbours = cell_tree.query_ball_tree(cell_tree, r=radius)
         return neighbours
 
     def interaction_forces(self):
@@ -243,7 +242,7 @@ class Monolayer:
             A n x n x 2 array, where n is the number of cells in the monolayer. The [i,j] entry contains
             the 2D force acting on cell i caused by cell j.
         """
-        neighbours = self.neighbours()
+        neighbours = self.neighbours(self.sim_params[0])
         forces = np.zeros((self.num_cells, self.num_cells, 2))
         for cell_a_index in range(self.num_cells):
             cell_a = self.positions[cell_a_index]
