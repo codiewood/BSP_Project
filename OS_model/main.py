@@ -257,16 +257,16 @@ class Monolayer:
                     r = cell_b - cell_a  # Vector from cell a to cell b
                     r_hat = r / dist  # Unit vector
                     natural_separation = self.cell_radius[cell_a_index] + self.cell_radius[cell_b_index]
-                    gap = dist - natural_separation
+                    separation = dist - natural_separation
                     mu = self.mu
-                    if gap < 0:  # If we have overlapping cells, regardless of type, repulsion occurs
-                        f = mu * natural_separation * r_hat * log(1 + gap / natural_separation)
+                    if separation < 0:  # If we have overlapping cells, regardless of type, repulsion occurs
+                        f = mu * natural_separation * r_hat * log(1 + separation / natural_separation)
                     else:  # If cells are not overlapping but are within interaction radius
                         if b_type != a_type:  # If cell_a and cell_b are not the same type
                             mu *= self.lam  # Use heterotypic spring constant
-                        f = mu * gap * r_hat * exp(-self.k_c * gap / natural_separation)
-                    forces[cell_a_index, cell_b_index] = f
-                    forces[cell_b_index, cell_a_index] = -f
+                        f = mu * separation * r_hat * exp(-self.k_c * separation / natural_separation)
+                    forces[cell_a_index, cell_b_index] = np.round(f, 5)
+                    forces[cell_b_index, cell_a_index] = -np.round(f, 5)
         return forces
 
     def random_forces(self, time_step):
