@@ -231,6 +231,38 @@ class Monolayer:
         neighbours = cell_tree.query_ball_tree(cell_tree, r=radius)
         return neighbours
 
+    def cell_sorting_proportions(self):
+        props = np.zeros(self.num_cells)
+        neighbours = self.neighbours(2*max(self.cell_radius))
+        for cell_index in range(self.num_cells):
+            surrounding_cells = neighbours[cell_index]
+            cell_type = self.cell_types[cell_index]
+            surrounding_types = []
+            for cell in surrounding_cells:
+                surrounding_types.append(self.cell_types[cell])
+            type_1_count = sum(surrounding_types[:])
+            total_cell_count = len(surrounding_cells)
+            if cell_type == 0:
+                prop = (total_cell_count - type_1_count)/total_cell_count
+            else:
+                prop = type_1_count/total_cell_count
+            props[cell_index] = prop
+        return props
+
+    def average_sorting_metric(self):
+        props = self.cell_sorting_proportions()
+        average_proportion = sum(props) / len(props)
+        return average_proportion
+
+    def cutoff_sorting_metric(self):
+        i = 0
+        props = self.cell_sorting_proportions()
+        for j in range(len(props)):
+            if props[j] > 0.5:
+                i += 1
+        prop_over_cutoff = i / len(props)
+        return prop_over_cutoff
+
     def interaction_forces(self):
         """
         Generates the interaction forces acting on all n cells in the monolayer, caused by the other cells
@@ -268,6 +300,42 @@ class Monolayer:
                     forces[cell_a_index, cell_b_index] = np.round(f, 5)
                     forces[cell_b_index, cell_a_index] = -np.round(f, 5)
         return forces
+
+    def fractional_length(self):
+        """
+        Calculates the fractional length, a measure of sorting, for the monolayer.
+
+        Returns
+        -------
+        fractional_length : float
+            A fraction indication the proportion of edge contact of cells that is heterotypic (between two cells
+            of different types).
+        """
+        neighbours = self.neighbours(2*max(self.cell_radius))
+        total_edge_contact = 0
+        het_edge_contact = 0
+        for cell_a_index in range(self.num_cells):
+            cell_a = self.positions[cell_a_index]
+            a_type = self.cell_types[cell_a_index]
+            radius_a = self.cell_radius[cell_a_index]
+            for cell_b_index in neighbours[cell_a_index]:
+                if cell_b_index > cell_a_index:
+                    cell_b = self.positions[cell_b_index]
+                    b_type = self.cell_types[cell_b_index]
+                    radius_b = self.cell_radius[cell_b_index]
+                    dist = euclidean(cell_a, cell_b)
+                    if dist == 0:
+                        dist += 0.0001
+                    natural_separation = radius_a + radius_b
+                    if natural_separation > dist:  # If we have overlapping cells, calculate edge length
+                        s = 0.5*(dist + radius_a + radius_b)
+                        area = sqrt(s*(s-dist)*(s-radius_a)*(s-radius_b))
+                        edge_length = 4 * area / dist
+                        total_edge_contact += edge_length
+                        if b_type != a_type:  # If cell_a and cell_b are not the same type
+                            het_edge_contact += edge_length
+        fractional_length = het_edge_contact / total_edge_contact
+        return fractional_length
 
     def random_forces(self, time_step):
         """
