@@ -311,8 +311,12 @@ class Monolayer:
             cell_interaction_force = sum(interaction_forces[cell_index][:])
             net_force = cell_interaction_force + random_forces[cell_index]
             new_position = current_position + time_step * net_force / drag
-            if 0 <= new_position[0] <= self.size and 0 <= new_position[1] <= self.size:  # Accepting any moves in domain
-                positions_for_update[cell_index] = new_position
+            for i in range(2):  # Implementing no flux reflective boundary condition
+                if new_position[i] < 0:
+                    new_position[i] = -new_position[i]
+                elif new_position[i] > self.size:
+                    new_position[i] = 2 * self.size - new_position[i]
+            positions_for_update[cell_index] = new_position
         self.positions = positions_for_update
         self.sim_time += time_step
         self.sim_time = round(self.sim_time, 3)
