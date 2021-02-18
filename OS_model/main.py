@@ -168,7 +168,6 @@ class Monolayer:
         radius = 0.5
         x = radius
         y = radius * (sqrt(3) * 2 * n + 1)
-        y = round(y, 3)
         row_switches = 0
         cell_rows = ()
         while radius <= x <= self.size - radius:
@@ -180,7 +179,6 @@ class Monolayer:
                 y += sqrt(3) * radius
             else:
                 y -= sqrt(3) * radius
-            y = round(y, 3)
             row_switches += 1
         return cell_rows
 
@@ -263,6 +261,41 @@ class Monolayer:
         prop_over_cutoff = i / len(props)
         return prop_over_cutoff
 
+    def fractional_length(self):
+        """
+        Calculates the fractional length, a measure of sorting, for the monolayer.
+
+        Returns
+        -------
+        fractional_length : float
+            A fraction indication the proportion of edge contact of cells that is heterotypic (between two cells
+            of different types).
+        """
+        neighbours = self.neighbours(2 * max(self.cell_radius))
+        total_edge_contact, het_edge_contact = 0, 0
+        for cell_a_index in range(self.num_cells):
+            cell_a = self.positions[cell_a_index]
+            a_type = self.cell_types[cell_a_index]
+            radius_a = self.cell_radius[cell_a_index]
+            for cell_b_index in neighbours[cell_a_index]:
+                if cell_b_index > cell_a_index:
+                    cell_b = self.positions[cell_b_index]
+                    b_type = self.cell_types[cell_b_index]
+                    radius_b = self.cell_radius[cell_b_index]
+                    dist = euclidean(cell_a, cell_b)
+                    if dist == 0:
+                        dist = 0.0001
+                    natural_separation = radius_a + radius_b
+                    if natural_separation > dist:  # If we have overlapping cells, calculate edge length
+                        s = 0.5 * (dist + radius_a + radius_b)
+                        area = sqrt(s * (s - dist) * (s - radius_a) * (s - radius_b))
+                        edge_length = 4 * area / dist
+                        total_edge_contact += edge_length
+                        if b_type != a_type:  # If cell_a and cell_b are not the same type
+                            het_edge_contact += edge_length
+        fractional_length = het_edge_contact / total_edge_contact
+        return fractional_length
+
     def interaction_forces(self):
         """
         Generates the interaction forces acting on all n cells in the monolayer, caused by the other cells
@@ -297,45 +330,9 @@ class Monolayer:
                         if b_type != a_type:  # If cell_a and cell_b are not the same type
                             mu *= self.lam  # Use heterotypic spring constant
                         f = mu * separation * r_hat * exp(-self.k_c * separation / natural_separation)
-                    forces[cell_a_index, cell_b_index] = np.round(f, 5)
-                    forces[cell_b_index, cell_a_index] = -np.round(f, 5)
+                    forces[cell_a_index, cell_b_index] = f
+                    forces[cell_b_index, cell_a_index] = -f
         return forces
-
-    def fractional_length(self):
-        """
-        Calculates the fractional length, a measure of sorting, for the monolayer.
-
-        Returns
-        -------
-        fractional_length : float
-            A fraction indication the proportion of edge contact of cells that is heterotypic (between two cells
-            of different types).
-        """
-        neighbours = self.neighbours(2*max(self.cell_radius))
-        total_edge_contact = 0
-        het_edge_contact = 0
-        for cell_a_index in range(self.num_cells):
-            cell_a = self.positions[cell_a_index]
-            a_type = self.cell_types[cell_a_index]
-            radius_a = self.cell_radius[cell_a_index]
-            for cell_b_index in neighbours[cell_a_index]:
-                if cell_b_index > cell_a_index:
-                    cell_b = self.positions[cell_b_index]
-                    b_type = self.cell_types[cell_b_index]
-                    radius_b = self.cell_radius[cell_b_index]
-                    dist = euclidean(cell_a, cell_b)
-                    if dist == 0:
-                        dist += 0.0001
-                    natural_separation = radius_a + radius_b
-                    if natural_separation > dist:  # If we have overlapping cells, calculate edge length
-                        s = 0.5*(dist + radius_a + radius_b)
-                        area = sqrt(s*(s-dist)*(s-radius_a)*(s-radius_b))
-                        edge_length = 4 * area / dist
-                        total_edge_contact += edge_length
-                        if b_type != a_type:  # If cell_a and cell_b are not the same type
-                            het_edge_contact += edge_length
-        fractional_length = het_edge_contact / total_edge_contact
-        return fractional_length
 
     def random_forces(self, time_step):
         """
@@ -357,7 +354,6 @@ class Monolayer:
         for index in range(self.num_cells):
             coords = random.normal(0, 1, 2)
             force[index] = sqrt(2 * self.k_pert * mag / time_step) * coords
-            force = np.round(force, 5)
         return force
 
     def simulate_step(self, time_step=0.005):
@@ -431,8 +427,7 @@ class Monolayer:
         fig, ax :
             The figure and axis required for plotting.
         """
-        vmax = self.size
-        radius = max(self.cell_radius)
+        vmax, radius = self.size, max(self.cell_radius)
         fig, ax = plt.subplots()
         ax.set_xlim(-radius, vmax + radius)
         ax.set_ylim(-radius, vmax + radius)
@@ -466,18 +461,16 @@ class Monolayer:
             'True' will show the interaction areas of each cell. Default is False.
         """
         r_max = self.sim_params[0]
+        cell_colour = ['plum', 'royalblue']
         fig, ax = self.generate_axes(show_interactions)
         self.simulate(time, time_step)
         cell_index = 0
-        for xi, yi, ti in zip(self.positions[:, 0], self.positions[:, 1], self.cell_types):
+        for xi, yi, cell_type in zip(self.positions[:, 0], self.positions[:, 1], self.cell_types):
             if show_interactions:
                 interaction_zone = plt.Circle((xi, yi), radius=r_max, facecolor='grey', edgecolor='k', alpha=0.15)
                 fig.gca().add_artist(interaction_zone)
-            if ti == 0:
-                cell_colour = 'plum'
-            else:
-                cell_colour = 'royalblue'
-            cell = plt.Circle((xi, yi), radius=self.cell_radius[cell_index], facecolor=cell_colour, edgecolor='k')
+            cell = plt.Circle((xi, yi), radius=self.cell_radius[cell_index],
+                              facecolor=cell_colour[cell_type], edgecolor='k')
             fig.gca().add_artist(cell)
             cell_index += 1
         plt.title('Cells at ' + str(self.sim_time) + ' hours')
