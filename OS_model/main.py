@@ -198,6 +198,15 @@ class Monolayer:
             cell_sheet = cell_sheet + self.generate_cell_rows(row_set)
         return cell_sheet
 
+    def manual_cell_placement(self, coordinates, types):
+        self.initial_positions = coordinates
+        self.positions = self.generate_initial_positions_array()
+        self.num_cells = len(self.positions)
+        self.cell_types = types
+        self.type_1 = sum(self.cell_types)
+        self.type_0 = self.num_cells - self.type_1
+        self.cell_radius = [0.5] * self.num_cells
+
     def generate_initial_positions_array(self):
         """
         Generates a n x 2 array of coordinates for the initial positions of all n cells within the monolayer.
@@ -372,7 +381,7 @@ class Monolayer:
         random_forces = self.random_forces(time_step)
         for cell_index in range(self.num_cells):
             current_position = self.positions[cell_index]
-            cell_interaction_force = sum(interaction_forces[cell_index][:])
+            cell_interaction_force = sum(interaction_forces[cell_index,:])
             net_force = cell_interaction_force + random_forces[cell_index]
             new_position = current_position + time_step * net_force / drag
             for i in range(2):  # Implementing no flux reflective boundary condition
@@ -391,6 +400,7 @@ class Monolayer:
         """
         self.positions = self.generate_initial_positions_array()
         self.sim_time = 0
+        self.num_cells = len(self.initial_positions)
 
     def simulate(self, end_time, time_step=0.005):
         """

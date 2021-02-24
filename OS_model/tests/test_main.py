@@ -1,6 +1,7 @@
 import OS_model
 import numpy as np
 from numpy import random
+from scipy.spatial.distance import euclidean
 
 
 def test_uniform_coords():
@@ -123,3 +124,43 @@ def test_simulate():
     """
     Test the function `Monolayer.simulate` in main.py
     """
+
+
+def test_manual_cell_placement():
+    """
+    Test the function `Monolayer.manual_cell_placement` in main.py
+    """
+    x = OS_model.Monolayer(size=5)
+    x.manual_cell_placement(((2.0, 2.0), (2.0, 3.0)), [0, 1])
+    assert x.initial_positions == ((2., 2.), (2., 3.))
+    assert x.num_cells == 2
+    assert x.cell_types == [0, 1]
+
+
+def test_natural_separation():
+    """
+    Test the simulations have the correct expected behaviour when we have two cells of the same type.
+    Started from their natural separation, we expect them to stay close. Similarly for slight deviations.
+    """
+    random.seed(1234)
+    base = OS_model.Monolayer(size=5)
+    base.manual_cell_placement(((2.0, 2.0), (2.0, 3.0)), [0, 0])
+    apart = OS_model.Monolayer(size=5)
+    apart.manual_cell_placement(((2.0, 1.8), (2.0, 3.0)), [0, 0])
+    overlap = OS_model.Monolayer(size=5)
+    overlap.manual_cell_placement(((2.0, 2.2), (2.0, 3.0)), [0, 0])
+    dist = np.zeros((21, 3))
+    for i in range(21):
+        base.simulate(10 * i)
+        dist[i, 0] = euclidean(base.positions[0], base.positions[1])
+        apart.simulate(10 * i)
+        dist[i, 1] = euclidean(apart.positions[0], apart.positions[1])
+        overlap.simulate(10 * i)
+        dist[i, 2] = euclidean(overlap.positions[0], overlap.positions[1])
+    base_average_distance = sum(dist[:,0]) / 21
+    apart_average_distance = sum(dist[:,1]) / 21
+    overlap_average_distance = sum(dist[:,2]) / 21
+    error = 0.025
+    assert abs(base_average_distance - 1) <= error
+    assert abs(apart_average_distance - 1) <= error
+    assert abs(overlap_average_distance - 1) <= error
