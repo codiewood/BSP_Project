@@ -28,10 +28,11 @@ if show_interactions:
 plt.legend(handles=leg, bbox_to_anchor=((3 - len(leg)) / 6, -0.15, len(leg) / 3, .102), loc='upper left',
            ncol=len(leg), mode="expand", borderaxespad=0.)
 
+
 def build_plot(time):
     robin = plt.Circle((vmax / 2, vmax / 2), radius=vmax, facecolor='w')
     fig.gca().add_artist(robin)
-    monolayer.simulate(0.25*time, time_step)
+    monolayer.simulate(0.25 * time, time_step)
     pos = monolayer.positions
     cell_colour = ['plum', 'royalblue']
     for xi, yi, cell_type in zip(pos[:, 0], pos[:, 1], monolayer.cell_types):
@@ -41,7 +42,8 @@ def build_plot(time):
             fig.gca().add_artist(interaction_zone)
         cell = plt.Circle((xi, yi), radius=radius, facecolor=cell_colour[cell_type], edgecolor='k')
         fig.gca().add_artist(cell)
-    plt.title('Cells at ' + str(round(monolayer.sim_time,1)) + ' hours')
+    plt.title('Cells at ' + str(round(monolayer.sim_time, 1)) + ' hours')
+
 
 anim = animation.FuncAnimation(fig, build_plot, frames=400, interval=100)
 anim.save('2_same_cells.gif')
