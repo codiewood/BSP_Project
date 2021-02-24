@@ -485,3 +485,49 @@ class Monolayer:
             cell_index += 1
         plt.title('Cells at ' + str(self.sim_time) + ' hours')
         plt.show()
+
+    def measure_sorting(self, end_time, time_step=0.005):
+        """
+        Simulates the model until 'end_time', using a forward-Euler time step equation.
+
+        Parameters
+        ----------
+        end_time : int, float
+            The end time of the simulation, in hours.
+
+        time_step : int, float
+            The time step of the simulation, in hours. Default is 0.005.
+
+        Returns
+        -------
+        fractional_length_plot : np.ndarray
+            An array containing the fractional lengths at each time in the first row,
+            and the corresponding time values in the second.
+        """
+        if end_time < self.sim_time:  # If the desired simulation time has already been passed, reset cells
+            self.reset()
+        elif end_time != self.sim_time:
+            length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
+            its = math.ceil(length / time_step)  # Calculate number of iterations needed for end time to be reached
+            fractional_length_plot = np.zeros((2,its))
+            for i in range(its):
+                self.simulate_step(time_step)
+                fractional_length_plot[0,i] = self.fractional_length()
+                fractional_length_plot[1,i] = self.sim_time
+        return fractional_length_plot
+
+    def show_cell_sorting(self, end_time, time_step=0.005):
+        """
+        Plots the evolution of the fractional length metric of cell sorting as the monolayer is simulated.
+
+        Parameters
+        ----------
+        end_time : int, float
+            The end time of the simulation, in hours.
+
+        time_step : int, float
+            The time step of the simulation, in hours. Default is 0.005.
+        """
+        fractional_length = self.measure_sorting(end_time,time_step)
+        plt.plot(fractional_length[1],fractional_length[0])
+        plt.show()
