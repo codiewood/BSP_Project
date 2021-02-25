@@ -5,7 +5,6 @@ from math import sqrt, log, exp, floor
 from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches
 from scipy import spatial
-from scipy.spatial.distance import euclidean
 
 
 def uniform_coords(lim):
@@ -240,7 +239,7 @@ class Monolayer:
 
     def cell_sorting_proportions(self):
         props = np.zeros(self.num_cells)
-        neighbours = self.neighbours(2*max(self.cell_radius))
+        neighbours = self.neighbours(2 * max(self.cell_radius))
         for cell_index in range(self.num_cells):
             surrounding_cells = neighbours[cell_index]
             cell_type = self.cell_types[cell_index]
@@ -250,9 +249,9 @@ class Monolayer:
             type_1_count = sum(surrounding_types[:])
             total_cell_count = len(surrounding_cells)
             if cell_type == 0:
-                prop = (total_cell_count - type_1_count)/total_cell_count
+                prop = (total_cell_count - type_1_count) / total_cell_count
             else:
-                prop = type_1_count/total_cell_count
+                prop = type_1_count / total_cell_count
             props[cell_index] = prop
         return props
 
@@ -291,7 +290,7 @@ class Monolayer:
                     cell_b = self.positions[cell_b_index]
                     b_type = self.cell_types[cell_b_index]
                     radius_b = self.cell_radius[cell_b_index]
-                    dist = euclidean(cell_a, cell_b)
+                    dist = np.linalg.norm(cell_a - cell_b)
                     if dist == 0:
                         dist = 0.0001
                     natural_separation = radius_a + radius_b
@@ -313,11 +312,11 @@ class Monolayer:
         Returns
         -------
         numpy.array
-            A n x n x 2 array, where n is the number of cells in the monolayer. The [i,j] entry contains
-            the 2D force acting on cell i caused by cell j.
+            An n x 2 array, where n is the number of cells in the monolayer. The ith entry contains
+            the total 2D force acting on cell i caused by neighbouring cells.
         """
         neighbours = self.neighbours(self.sim_params[0])
-        forces = np.zeros((self.num_cells, self.num_cells, 2))
+        forces = np.zeros((self.num_cells, 2))
         for cell_a_index in range(self.num_cells):
             cell_a = self.positions[cell_a_index]
             a_type = self.cell_types[cell_a_index]
@@ -325,7 +324,7 @@ class Monolayer:
                 if cell_b_index > cell_a_index:
                     cell_b = self.positions[cell_b_index]
                     b_type = self.cell_types[cell_b_index]
-                    dist = euclidean(cell_a, cell_b)
+                    dist = np.linalg.norm(cell_a - cell_b)
                     if dist == 0:
                         dist += 0.0001
                     r = cell_b - cell_a  # Vector from cell a to cell b
@@ -339,8 +338,8 @@ class Monolayer:
                         if b_type != a_type:  # If cell_a and cell_b are not the same type
                             mu *= self.lam  # Use heterotypic spring constant
                         f = mu * separation * r_hat * exp(-self.k_c * separation / natural_separation)
-                    forces[cell_a_index, cell_b_index] = f
-                    forces[cell_b_index, cell_a_index] = -f
+                    forces[cell_a_index] += f
+                    forces[cell_b_index] -= f
         return forces
 
     def random_forces(self, time_step):
@@ -354,16 +353,13 @@ class Monolayer:
 
         Returns
         -------
-        force : np.array
-            An n x 2 array of the random perturbation forces acting on each cell in the monolayer,
-            returned to 3 decimal places.
+        np.array
+            An n x 2 array of the random perturbation forces acting on each cell in the monolayer.
         """
         mag = self.sim_params[1]
-        force = np.zeros_like(self.positions)
-        for index in range(self.num_cells):
-            coords = random.normal(0, 1, 2)
-            force[index] = sqrt(2 * self.k_pert * mag / time_step) * coords
-        return force
+        scale = sqrt(2 * self.k_pert * mag / time_step)
+        force = random.normal(0, 1, self.positions.shape)
+        return scale * force
 
     def simulate_step(self, time_step=0.005):
         """
@@ -381,8 +377,7 @@ class Monolayer:
         random_forces = self.random_forces(time_step)
         for cell_index in range(self.num_cells):
             current_position = self.positions[cell_index]
-            cell_interaction_force = sum(interaction_forces[cell_index,:])
-            net_force = cell_interaction_force + random_forces[cell_index]
+            net_force = interaction_forces[cell_index] + random_forces[cell_index]
             new_position = current_position + time_step * net_force / drag
             for i in range(2):  # Implementing no flux reflective boundary condition
                 if new_position[i] < 0:
@@ -392,7 +387,6 @@ class Monolayer:
             positions_for_update[cell_index] = new_position
         self.positions = positions_for_update
         self.sim_time += time_step
-        self.sim_time = round(self.sim_time, 3)
 
     def reset(self):
         """

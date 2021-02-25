@@ -157,9 +157,9 @@ def test_natural_separation():
         dist[i, 1] = euclidean(apart.positions[0], apart.positions[1])
         overlap.simulate(10 * i)
         dist[i, 2] = euclidean(overlap.positions[0], overlap.positions[1])
-    base_average_distance = sum(dist[:,0]) / 21
-    apart_average_distance = sum(dist[:,1]) / 21
-    overlap_average_distance = sum(dist[:,2]) / 21
+    base_average_distance = sum(dist[:, 0]) / 21
+    apart_average_distance = sum(dist[:, 1]) / 21
+    overlap_average_distance = sum(dist[:, 2]) / 21
     error = 0.025
     assert abs(base_average_distance - 1) <= error
     assert abs(apart_average_distance - 1) <= error

@@ -1,6 +1,6 @@
 import OS_model
 from matplotlib import pyplot as plt
-from matplotlib import patches as mpatches
+#from matplotlib import patches as mpatches
 from matplotlib import animation
 from numpy import random
 
