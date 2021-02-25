@@ -7,26 +7,13 @@ from numpy import random
 random.seed(1234)
 show_interactions = False
 time_step = 0.005
-monolayer = OS_model.Monolayer(size=5)
-monolayer.manual_cell_placement(((2.0,2.0),(2.0,3.0)),[0,0])
+monolayer = OS_model.Monolayer()
+# monolayer.manual_cell_placement(((2.0, 2.0), (2.0, 3.0)), [0, 0])
 
 vmax = monolayer.size  # Set up axes and plot
 radius = 0.5
 r_max, mag, drag = monolayer.sim_params
-fig, ax = plt.subplots()
-ax.set_xlim(-radius, vmax + radius)
-ax.set_ylim(-radius, vmax + radius)
-ax.set_aspect(1)
-ax.set_yticklabels([])
-ax.set_xticklabels([])
-plum_patch = mpatches.Patch(facecolor='plum', edgecolor='k', label='Type 0')
-blue_patch = mpatches.Patch(facecolor='royalblue', edgecolor='k', label='Type 1')
-leg = [plum_patch, blue_patch]
-if show_interactions:
-    int_patch = mpatches.Patch(facecolor='grey', edgecolor='k', alpha=0.15, label='Interaction')
-    leg.append(int_patch)
-plt.legend(handles=leg, bbox_to_anchor=((3 - len(leg)) / 6, -0.15, len(leg) / 3, .102), loc='upper left',
-           ncol=len(leg), mode="expand", borderaxespad=0.)
+fig, ax = monolayer.generate_axes()
 
 
 def build_plot(time):
@@ -46,4 +33,4 @@ def build_plot(time):
 
 
 anim = animation.FuncAnimation(fig, build_plot, frames=400, interval=100)
-anim.save('2_same_cells.gif')
+anim.save('default.gif')
