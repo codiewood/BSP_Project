@@ -70,6 +70,7 @@ class Monolayer:
         if not rand:
             random.shuffle(self.cell_types)
         self.cell_radius = [0.5] * self.num_cells
+        self.initial_fractional_length = self.fractional_length()
 
     def set_mu(self, mu):
         """
@@ -271,7 +272,7 @@ class Monolayer:
 
     def fractional_length(self):
         """
-        Calculates the fractional length, a measure of sorting, for the monolayer.
+        Calculates the fractional length, a measure of sorting, for the monolayer in its current state.
 
         Returns
         -------
@@ -398,7 +399,8 @@ class Monolayer:
 
     def simulate(self, end_time, time_step=0.005):
         """
-        Simulates the model until 'end_time', using a forward-Euler time step equation.
+        Simulates the model until 'end_time', using a forward-Euler time step equation. Will not compute any
+        additional outputs eg fractional length, or plot any visualisations.
 
         Parameters
         ----------
@@ -407,11 +409,10 @@ class Monolayer:
 
         time_step : int, float
             The time step of the simulation, in hours. Default is 0.005.
-
         """
         if end_time < self.sim_time:  # If the desired simulation time has already been passed, reset cells
             self.reset()
-        elif end_time != self.sim_time:
+        if end_time != self.sim_time:
             length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
             its = math.ceil(length / time_step)  # Calculate number of iterations needed for end time to be reached
             for _ in range(its):
@@ -477,12 +478,13 @@ class Monolayer:
                               facecolor=cell_colour[cell_type], edgecolor='k')
             fig.gca().add_artist(cell)
             cell_index += 1
-        plt.title('Cells at ' + str(self.sim_time) + ' hours')
+        plt.title('Cells at ' + str(round(self.sim_time, 3)) + ' hours')
         plt.show()
 
     def measure_sorting(self, end_time, time_step=0.005):
         """
-        Simulates the model until 'end_time', using a forward-Euler time step equation.
+        Simulates the model from time 0 until 'end_time', using a forward-Euler time step equation,
+        recording the fractional length at each time step.
 
         Parameters
         ----------
@@ -494,21 +496,25 @@ class Monolayer:
 
         Returns
         -------
-        fractional_length_plot : np.ndarray
-            An array containing the fractional lengths at each time in the first row,
-            and the corresponding time values in the second.
+        fractional_length : np.ndarray
+            An array containing the fractional lengths at each time step in the second row,
+            normalised by the fractional length at time 0, and the corresponding time values in the first.
         """
+        normalising_constant = self.initial_fractional_length
         if end_time < self.sim_time:  # If the desired simulation time has already been passed, reset cells
             self.reset()
-        elif end_time != self.sim_time:
-            length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
+        length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
+        if length == 0:
+            its = 0
+        else:
             its = math.ceil(length / time_step)  # Calculate number of iterations needed for end time to be reached
-            fractional_length_plot = np.zeros((2,its))
-            for i in range(its):
+        frac_length = np.zeros((2, its+1))
+        for i in range(its+1):
+            frac_length[0, i] = self.sim_time
+            frac_length[1, i] = self.fractional_length() / normalising_constant
+            if length != 0:
                 self.simulate_step(time_step)
-                fractional_length_plot[0,i] = self.fractional_length()
-                fractional_length_plot[1,i] = self.sim_time
-        return fractional_length_plot
+        return frac_length
 
     def show_cell_sorting(self, end_time, time_step=0.005):
         """
@@ -522,6 +528,8 @@ class Monolayer:
         time_step : int, float
             The time step of the simulation, in hours. Default is 0.005.
         """
-        fractional_length = self.measure_sorting(end_time,time_step)
-        plt.plot(fractional_length[1],fractional_length[0])
+        fractional_length = self.measure_sorting(end_time, time_step)
+        plt.plot(fractional_length[0], fractional_length[1])
+        plt.xlabel('Time (hours)')
+        plt.ylabel('Fractional length')
         plt.show()
