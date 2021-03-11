@@ -81,7 +81,7 @@ def test_generate_initial_positions_array():
     Test the function `Monolayer.generate_initial_positions_array` in main.py
     """
     random.seed(1234)
-    x = OS_model.Monolayer(2)
+    x = OS_model.Monolayer(size=5)
     for i in range(2):
         for j in range(2):
             assert x.generate_initial_positions_array()[i][j] == x.initial_positions[i][j]
@@ -100,11 +100,21 @@ def test_interaction_forces():
     """
 
 
-def test_simulate_step():
+def test_simulation_times():
     """
-    Test the function `Monolayer.simulate_step` in main.py
+    Test the functions `Monolayer.simulate_step` and 'Monolayer.simulate' in main.py.
+    Checks that the simulation timings are correctly implemented.
     """
-
+    random.seed(1234)
+    x = OS_model.Monolayer(size=5)
+    x.simulate_step(time_step=0.005)
+    assert round(x.sim_time, 3) == 0.005
+    x.simulate(end_time=0)
+    assert x.sim_time == 0
+    x.simulate(end_time=0.1)
+    assert round(x.sim_time, 3) == 0.1
+    x.simulate(end_time=0.01)
+    assert round(x.sim_time, 3) == 0.01
 
 def test_reset():
     """
