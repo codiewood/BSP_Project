@@ -27,6 +27,12 @@ def uniform_coords(lim):
     return coords
 
 
+def random_unit_vector():
+    x, y = random.normal(size=2)
+    mag = sqrt(x ** 2 + y ** 2)
+    return np.asarray([x / mag, y / mag])
+
+
 class Monolayer:
     """Monolayer of cells in 2D space"""
 
@@ -67,11 +73,13 @@ class Monolayer:
             self.num_cells = len(self.positions)
         self.type_0 = round(self.num_cells * p)
         self.type_1 = self.num_cells - self.type_0
-        self.cell_types = [0] * self.type_0 + [1] * self.type_1
+        self.cell_types = np.asarray([0] * self.type_0 + [1] * self.type_1)
         if not rand:
             random.shuffle(self.cell_types)
-        self.cell_radius = [0.5] * self.num_cells
+        self.cell_radius = np.asarray([0.5] * self.num_cells)
         self.initial_fractional_length = self.fractional_length()
+        self.division_timer = None
+        self.division_rates = None
 
     def set_mu(self, mu):
         """
@@ -314,6 +322,8 @@ class Monolayer:
                         total_edge_contact += edge_length
                         if b_type != a_type:  # If cell_a and cell_b are not the same type
                             het_edge_contact += edge_length
+        if total_edge_contact == 0:
+            total_edge_contact = 0.0001
         fractional_length = het_edge_contact / total_edge_contact
         return fractional_length
 
@@ -418,7 +428,9 @@ class Monolayer:
             length = end_time - self.sim_time  # Calculate remaining time needed to run simulation
             its = math.ceil(length / self.time_step)  # Calculate number of iterations needed for end time to be reached
             for _ in range(its):
-                self.simulate_step(time_step)
+                if self.division_timer is not None:
+                    self.cell_division()
+                self.simulate_step()
 
     def generate_axes(self, show_interactions=False):
         """
@@ -508,20 +520,36 @@ class Monolayer:
                 self.simulate_step()
         return frac_length
 
-    def show_cell_sorting(self, end_time, time_step=0.005):
-        """
-        Plots the evolution of the fractional length metric of cell sorting as the monolayer is simulated.
+    def set_division_timer(self, division_rate, division_rate_1=None):
+        self.division_rates = self.cell_types * (division_rate_1 - division_rate) + division_rate
+        cell_clocks = np.zeros(self.num_cells)
+        for index, rate in enumerate(self.division_rates):
+            cell_clocks[index] = random.exponential(rate)
+        self.division_timer = cell_clocks
 
-        Parameters
-        ----------
-        end_time : int, float
-            The end time of the simulation, in hours.
+    def cell_division(self):
+        initial_cell_count = self.num_cells
+        epsilon = 0.5 * max(self.cell_radius)
+        for cell_index in range(initial_cell_count):
+            if self.division_timer[cell_index] <= 0:  # If cell is ready to divide
+                new_cell = self.positions[cell_index] + epsilon * random_unit_vector()
+                self.positions = np.append(self.positions, [new_cell], axis=0)
+                self.num_cells += 1
+                self.cell_radius = np.append(self.cell_radius,
+                                             0.5)  # Daughter cell has same size as other cells in monolayer
+                self.cell_types = np.append(self.cell_types,
+                                            self.cell_types[cell_index])  # Daughter cell same type as mother cell
+                self.division_timer[cell_index] = random.exponential(
+                    self.division_rates[cell_index])  # Reset mother cell timer
+                self.division_timer = np.append(self.division_timer, random.exponential(
+                    self.division_rates[cell_index]))  # Add timer for daughter
+                self.division_rates = np.append(self.division_rates,
+                                                self.division_rates[cell_index])  # Add division rate for daughter cell
+                self.type_1 = sum(self.cell_types)  # Update numbers of cell types
+                self.type_0 = self.num_cells - self.type_1
+            else:
+                self.division_timer[cell_index] -= self.time_step  # Count down by time step
 
-        time_step : int, float
-            The time step of the simulation, in hours. Default is 0.005.
-        """
-        fractional_length = self.measure_sorting(end_time, time_step)
-        plt.plot(fractional_length[0], fractional_length[1])
-        plt.xlabel('Time (hours)')
-        plt.ylabel('Fractional length')
-        plt.show()
+    def manual_division_timer(self, division_times, division_rates):
+        self.division_timer = np.asarray(division_times)
+        self.division_rates = np.asarray(division_rates)

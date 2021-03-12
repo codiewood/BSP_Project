@@ -1,7 +1,7 @@
-import OS_model
+# import OS_model
+# from numpy import random
+# import multiprocessing
 import numpy as np
-from numpy import random
-import multiprocessing
 from matplotlib import pyplot as plt
 from matplotlib import rc
 from numpy import genfromtxt
@@ -17,7 +17,7 @@ simulation_count = 10
 
 times = np.linspace(0, end_time, int(end_time / time_step) + 1)
 
-## Generate Data
+# Generate Data
 # def generate_data(k_pert):
 #     file_name = str(k_pert).replace('.', '_') + '_frac_length_data.txt'
 #     f = open(file_name, 'a')
@@ -43,19 +43,19 @@ times = np.linspace(0, end_time, int(end_time / time_step) + 1)
 #         jobs.append(p)
 #         p.start()
 
-#k_pert_vals = (0.01,0.1,0,1,10,100)
-#file_name = str(k_pert).replace('.', '_') + '_frac_length_data.txt'
+# k_pert_vals = (0.01,0.1,0,1,10,100)
+# file_name = str(k_pert).replace('.', '_') + '_frac_length_data.txt'
 
 
 plot_every = 20  # Determines how frequently we pull data points to plot.
 
 plot_times = times[0::plot_every]
-palette = ['tab:cyan','tab:blue','tab:purple','k','tab:orange','tab:red']
+palette = ['tab:cyan', 'tab:blue', 'tab:purple', 'k', 'tab:orange', 'tab:red']
 fig = plt.figure(1)
 for index, k_pert in enumerate((0, 0.01, 0.1, 1)):
     file_name = str(k_pert).replace('.', '_') + '_frac_length_data.txt'
     fractional_length_data = genfromtxt(file_name, delimiter=',')
-    plot_fractional_lengths = fractional_length_data[:,0::plot_every]
+    plot_fractional_lengths = fractional_length_data[:, 0::plot_every]
     plt.plot(plot_times, plot_fractional_lengths[0], label=str(k_pert))
     std_dev = np.sqrt(plot_fractional_lengths[1])
     plt.fill_between(plot_times, plot_fractional_lengths[0] + std_dev, plot_fractional_lengths[0] - std_dev, alpha=0.3)

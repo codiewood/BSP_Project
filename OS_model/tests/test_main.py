@@ -30,7 +30,7 @@ def test_set_time_step():
     assert x.time_step == 0.005
 
     x.set_time_step(10)
-    assert x.mu == 10
+    assert x.time_step == 10
 
 
 def test_set_lam():
@@ -105,6 +105,7 @@ def test_neighbours():
     x = OS_model.Monolayer(size=5)
     x.manual_cell_placement(((0.0, 0.0), (4.0, 3.0), (6.0, 6.0)), [0, 0, 0])
     assert x.neighbours(5) == [[0, 1], [0, 1, 2], [1, 2]]
+
 
 def test_interaction_forces():
     """
@@ -195,3 +196,22 @@ def test_natural_separation():
     assert abs(base_average_distance - 1) <= error
     assert abs(apart_average_distance - 1) <= error
     assert abs(overlap_average_distance - 1) <= error
+
+
+def test_manual_division_timer():
+    x = OS_model.Monolayer(size=5)
+    x.manual_cell_placement(([2, 2], [4, 4]), [1, 0])
+    x.manual_division_timer((5, 1), (7, 2))
+    assert np.array_equal(x.division_timer, np.asarray([5, 1]))
+    assert np.array_equal(x.division_rates, np.asarray([7, 2]))
+
+
+def test_division():
+    x = OS_model.Monolayer(size=5)
+    x.manual_cell_placement(([2, 2], [4, 4]), [1, 0])
+    x.manual_division_timer((0.005, 1), (1, 2))
+    x.simulate(end_time=0.005)
+    assert np.array_equal(x.division_timer, np.asarray([0, 0.995]))
+    x.simulate(end_time=0.01)
+    assert x.num_cells == 3 and len(x.positions) == 3 and x.type_1 == 2 and x.type_0 == 1 and len(x.division_timer) == 3
+    assert np.array_equal(x.division_rates, np.asarray([1, 2, 1]))
