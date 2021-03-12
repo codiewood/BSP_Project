@@ -55,6 +55,7 @@ class Monolayer:
         self.k_pert = 1
         self.sim_time = 0
         self.sim_params = (2.5, 0.05, 1)
+        self.time_step = 0.005
         self.size = size
         if rand:
             self.num_cells = n
@@ -115,6 +116,17 @@ class Monolayer:
             Multiplicative scaling factor of the perturbation magnitude. Default value is 1.
         """
         self.k_pert = k_pert
+
+    def set_time_step(self, time_step):
+        """
+        Initialises the time_step for the simulation.
+
+        Parameters
+        ----------
+        time_step : float
+            Simulation time step. Default is 0.005 hours.
+        """
+        self.time_step = time_step
 
     def simulation_parameters(self, r_max, mag, drag):
         """
@@ -343,14 +355,9 @@ class Monolayer:
                     forces[cell_b_index] -= f
         return forces
 
-    def random_forces(self, time_step):
+    def random_forces(self):
         """
-        A function that takes a time step and generates random perturbation forces for each cell in the monolayer.
-
-        Parameters
-        ----------
-        time_step : int, float
-            The time step of the simulation, in hours.
+        A function that generates random perturbation forces for each cell in the monolayer.
 
         Returns
         -------
@@ -358,28 +365,24 @@ class Monolayer:
             An n x 2 array of the random perturbation forces acting on each cell in the monolayer.
         """
         mag = self.sim_params[1]
-        scale = sqrt(2 * self.k_pert * mag / time_step)
+        scale = sqrt(2 * self.k_pert * mag / self.time_step)
         force = random.normal(0, 1, self.positions.shape)
         return scale * force
 
-    def simulate_step(self, time_step=0.005):
+    def simulate_step(self):
         """
         Simulates one time step of the model, using a forward-Euler time step equation, and updates the
-        position of each cell in the monolayer accordingly.
+        position of each cell in the monolayer accordingly. Implements reflective BCs.
 
-        Parameters
-        ----------
-        time_step : int, float
-            The time step of the simulation, in hours. Default is 0.005.
         """
         drag = self.sim_params[2]
         positions_for_update = np.zeros_like(self.positions)
         interaction_forces = self.interaction_forces()
-        random_forces = self.random_forces(time_step)
+        random_forces = self.random_forces()
         for cell_index in range(self.num_cells):
             current_position = self.positions[cell_index]
             net_force = interaction_forces[cell_index] + random_forces[cell_index]
-            new_position = current_position + time_step * net_force / drag
+            new_position = current_position + self.time_step * net_force / drag
             for i in range(2):  # Implementing no flux reflective boundary condition
                 if new_position[i] < 0:
                     new_position[i] = -new_position[i]
@@ -387,7 +390,7 @@ class Monolayer:
                     new_position[i] = 2 * self.size - new_position[i]
             positions_for_update[cell_index] = new_position
         self.positions = positions_for_update
-        self.sim_time += time_step
+        self.sim_time += self.time_step
 
     def reset(self):
         """
@@ -397,9 +400,10 @@ class Monolayer:
         self.sim_time = 0
         self.num_cells = len(self.initial_positions)
 
-    def simulate(self, end_time, time_step=0.005):
+    def simulate(self, end_time):
         """
-        Simulates the model until 'end_time', using a forward-Euler time step equation. Will not compute any
+        Simulates the model from its current state until 'end_time' (or from time 0 until 'end_time' if this time has
+        already been passed), using a forward-Euler time step equation. Will not compute any
         additional outputs eg fractional length, or plot any visualisations.
 
         Parameters
@@ -407,14 +411,12 @@ class Monolayer:
         end_time : int, float
             The end time of the simulation, in hours.
 
-        time_step : int, float
-            The time step of the simulation, in hours. Default is 0.005.
         """
         if end_time < self.sim_time:  # If the desired simulation time has already been passed, reset cells
             self.reset()
         if end_time != self.sim_time:
-            length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
-            its = math.ceil(length / time_step)  # Calculate number of iterations needed for end time to be reached
+            length = end_time - self.sim_time  # Calculate remaining time needed to run simulation
+            its = math.ceil(length / self.time_step)  # Calculate number of iterations needed for end time to be reached
             for _ in range(its):
                 self.simulate_step(time_step)
 
@@ -449,26 +451,19 @@ class Monolayer:
                    ncol=len(leg), mode="expand", borderaxespad=0.)
         return fig, ax
 
-    def show_cells(self, time=0, time_step=0.005, show_interactions=False):
+    def show_cells(self, show_interactions=False):
         """
-        Shows a visual representation of the cell configuration at time 'time'.
-        Note: For computational efficiency, if plotting multiple times it is best to do so in chronological order.
+        Shows a visual representation of the current cell configuration of the monolayer.
 
         Parameters
         ----------
-        time : int, float
-            The time at which the cells are shown, in hours. Default is 0.
-
-        time_step : int, float
-            The time step of the simulation, in hours. Default is 0.005.
-
         show_interactions : bool
             'True' will show the interaction areas of each cell. Default is False.
+
         """
         r_max = self.sim_params[0]
         cell_colour = ['plum', 'royalblue']
         fig, ax = self.generate_axes(show_interactions)
-        self.simulate(time, time_step)
         cell_index = 0
         for xi, yi, cell_type in zip(self.positions[:, 0], self.positions[:, 1], self.cell_types):
             if show_interactions:
@@ -481,18 +476,15 @@ class Monolayer:
         plt.title('Cells at ' + str(round(self.sim_time, 3)) + ' hours')
         plt.show()
 
-    def measure_sorting(self, end_time, time_step=0.005):
+    def measure_sorting(self, end_time):
         """
-        Simulates the model from time 0 until 'end_time', using a forward-Euler time step equation,
-        recording the fractional length at each time step.
+        Simulates the model from its current state until 'end_time' (or from time 0 until 'end_time' if this time has
+        already been passed), recording the fractional length at each time step.
 
         Parameters
         ----------
         end_time : int, float
             The end time of the simulation, in hours.
-
-        time_step : int, float
-            The time step of the simulation, in hours. Default is 0.005.
 
         Returns
         -------
@@ -507,13 +499,13 @@ class Monolayer:
         if length == 0:
             its = 0
         else:
-            its = math.ceil(length / time_step)  # Calculate number of iterations needed for end time to be reached
-        frac_length = np.zeros((2, its+1))
-        for i in range(its+1):
+            its = math.ceil(length / self.time_step)  # Calculate number of iterations needed for end time to be reached
+        frac_length = np.zeros((2, its + 1))
+        for i in range(its + 1):
             frac_length[0, i] = self.sim_time
             frac_length[1, i] = self.fractional_length() / normalising_constant
-            if length != 0:
-                self.simulate_step(time_step)
+            if length != 0 and i != its:
+                self.simulate_step()
         return frac_length
 
     def show_cell_sorting(self, end_time, time_step=0.005):

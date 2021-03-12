@@ -1,7 +1,6 @@
 import OS_model
 import numpy as np
 from numpy import random
-from scipy.spatial.distance import euclidean
 
 
 def test_uniform_coords():
@@ -16,18 +15,29 @@ def test_set_mu():
     """
     Test the function `Monolayer.set_mu` in main.py
     """
-    x = OS_model.Monolayer(1)
+    x = OS_model.Monolayer()
     assert x.mu == 50
 
     x.set_mu(16)
     assert x.mu == 16
 
 
+def test_set_time_step():
+    """
+    Test the function `Monolayer.set_time_step` in main.py
+    """
+    x = OS_model.Monolayer()
+    assert x.time_step == 0.005
+
+    x.set_time_step(10)
+    assert x.mu == 10
+
+
 def test_set_lam():
     """
     Test the function `Monolayer.set_lam` in main.py
     """
-    x = OS_model.Monolayer(1)
+    x = OS_model.Monolayer()
     assert x.lam == 0.1
 
     x.set_lam(1)
@@ -38,7 +48,7 @@ def test_set_k_c():
     """
     Test the function `Monolayer.set_k_c` in main.py
     """
-    x = OS_model.Monolayer(1)
+    x = OS_model.Monolayer()
     assert x.k_c == 5
 
     x.set_k_c(16)
@@ -49,7 +59,7 @@ def test_set_k_pert():
     """
     Test the function `Monolayer.set_k_pert` in main.py
     """
-    x = OS_model.Monolayer(1)
+    x = OS_model.Monolayer()
     assert x.k_pert == 1
 
     x.set_k_pert(16)
@@ -60,7 +70,7 @@ def test_simulation_parameters():
     """
     Test the function `Monolayer.simulation_parameters` in main.py
     """
-    x = OS_model.Monolayer(1)
+    x = OS_model.Monolayer()
     assert x.sim_params[0] == 2.5 and x.sim_params[1] == 0.05 and x.sim_params[2] == 1
 
     x.simulation_parameters(1, 2, 3)
@@ -81,7 +91,7 @@ def test_generate_initial_positions_array():
     Test the function `Monolayer.generate_initial_positions_array` in main.py
     """
     random.seed(1234)
-    x = OS_model.Monolayer(size=5)
+    x = OS_model.Monolayer()
     for i in range(2):
         for j in range(2):
             assert x.generate_initial_positions_array()[i][j] == x.initial_positions[i][j]
@@ -92,7 +102,9 @@ def test_neighbours():
     """
     Test the function `Monolayer.neighbours` in main.py
     """
-
+    x = OS_model.Monolayer(size=5)
+    x.manual_cell_placement(((0.0, 0.0), (4.0, 3.0), (6.0, 6.0)), [0, 0, 0])
+    assert x.neighbours(5) == [[0, 1], [0, 1, 2], [1, 2]]
 
 def test_interaction_forces():
     """
@@ -102,19 +114,28 @@ def test_interaction_forces():
 
 def test_simulation_times():
     """
-    Test the functions `Monolayer.simulate_step` and 'Monolayer.simulate' in main.py.
+    Test the functions `Monolayer.simulate_step`, 'Monolayer.simulate', 'Monolayer.measure_sorting' in main.py.
     Checks that the simulation timings are correctly implemented.
     """
-    random.seed(1234)
-    x = OS_model.Monolayer(size=5)
-    x.simulate_step(time_step=0.005)
-    assert round(x.sim_time, 3) == 0.005
+    x = OS_model.Monolayer()
+    x.simulate_step()
+    assert round(x.sim_time, 3) == x.time_step
+
     x.simulate(end_time=0)
     assert x.sim_time == 0
+
     x.simulate(end_time=0.1)
     assert round(x.sim_time, 3) == 0.1
+
     x.simulate(end_time=0.01)
     assert round(x.sim_time, 3) == 0.01
+
+    _ = x.measure_sorting(end_time=0.1)
+    assert round(x.sim_time, 3) == 0.1
+
+    _ = x.measure_sorting(end_time=0)
+    assert round(x.sim_time, 3) == 0
+
 
 def test_reset():
     """
@@ -162,11 +183,11 @@ def test_natural_separation():
     dist = np.zeros((21, 3))
     for i in range(21):
         base.simulate(10 * i)
-        dist[i, 0] = euclidean(base.positions[0], base.positions[1])
+        dist[i, 0] = np.linalg.norm(base.positions[0] - base.positions[1])
         apart.simulate(10 * i)
-        dist[i, 1] = euclidean(apart.positions[0], apart.positions[1])
+        dist[i, 1] = np.linalg.norm(apart.positions[0] - apart.positions[1])
         overlap.simulate(10 * i)
-        dist[i, 2] = euclidean(overlap.positions[0], overlap.positions[1])
+        dist[i, 2] = np.linalg.norm(overlap.positions[0] - overlap.positions[1])
     base_average_distance = sum(dist[:, 0]) / 21
     apart_average_distance = sum(dist[:, 1]) / 21
     overlap_average_distance = sum(dist[:, 2]) / 21
