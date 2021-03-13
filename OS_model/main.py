@@ -222,10 +222,10 @@ class Monolayer:
         self.initial_positions = coordinates
         self.positions = self.generate_initial_positions_array()
         self.num_cells = len(self.positions)
-        self.cell_types = types
+        self.cell_types = np.asarray(types)
         self.type_1 = sum(self.cell_types)
         self.type_0 = self.num_cells - self.type_1
-        self.cell_radius = [0.5] * self.num_cells
+        self.cell_radius = np.asarray([0.5] * self.num_cells)
 
     def generate_initial_positions_array(self):
         """
@@ -523,6 +523,8 @@ class Monolayer:
         return frac_length
 
     def set_division_timer(self, division_rate, division_rate_1=None):
+        if division_rate_1 is None:
+            division_rate_1 = division_rate
         self.division_rates = self.cell_types * (division_rate_1 - division_rate) + division_rate
         cell_clocks = np.zeros(self.num_cells)
         for index, rate in enumerate(self.division_rates):

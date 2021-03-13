@@ -166,7 +166,7 @@ def test_manual_cell_placement():
     x.manual_cell_placement(((2.0, 2.0), (2.0, 3.0)), [0, 1])
     assert x.initial_positions == ((2., 2.), (2., 3.))
     assert x.num_cells == 2
-    assert x.cell_types == [0, 1]
+    assert np.array_equal(x.cell_types, np.asarray([0, 1]))
 
 
 def test_natural_separation():
@@ -215,3 +215,15 @@ def test_division():
     x.simulate(end_time=0.01)
     assert x.num_cells == 3 and len(x.positions) == 3 and x.type_1 == 2 and x.type_0 == 1 and len(x.division_timer) == 3
     assert np.array_equal(x.division_rates, np.asarray([1, 2, 1]))
+
+
+def test_set_division_timer():
+    x = OS_model.Monolayer(size=5)
+    x.manual_cell_placement(([2, 2], [4, 4]), [1, 0])
+    assert x.division_timer is None
+    x.set_division_timer(division_rate=13)
+    assert len(x.division_timer) == 2
+    assert np.array_equal(x.division_rates, np.asarray([13, 13]))
+    x.set_division_timer(11, 15)
+    assert np.array_equal(x.division_rates, np.asarray([15, 11]))
+    assert len(x.division_timer) == 2
