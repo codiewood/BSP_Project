@@ -8,6 +8,7 @@ time_step_new = 0.01
 random.seed(72)
 x = OS_model.Monolayer(size=5)
 x.set_k_pert(k_pert=0)  # Remove randomness so that simulations are 'the same'
+x.set_time_step(time_step_old)  # Set time step
 x.show_cells()
 
 # Writing data file
@@ -17,7 +18,7 @@ x.show_cells()
 # f.write("\n Initial forces with old time_step \n")
 # np.savetxt(f, x.interaction_forces(), fmt='%1.3f', newline=", ")
 
-x.show_cells(0.01, time_step=time_step_old)  # Run simulation
+x.simulate(0.01)  # Run simulation
 
 # Writing data file
 # f.write("\n Forces at 0.01 with old time_step \n")
@@ -29,11 +30,12 @@ x.show_cells(0.01, time_step=time_step_old)  # Run simulation
 random.seed(72)
 y = OS_model.Monolayer(size=5)
 y.set_k_pert(k_pert=0)
+y.set_time_step(time_step_new)
 
 # f.write("\n Initial forces with new time_step \n")
 # np.savetxt(f, y.interaction_forces(), fmt='%1.3f', newline=", ")
 
-y.show_cells(time=0.01, time_step=time_step_new)  # Run simulation
+y.simulate(0.01)  # Run simulation
 
 # f.write("\n Forces at 0.01 with new time_step \n")
 # np.savetxt(f, y.interaction_forces(), fmt='%1.3f', newline=", ")
@@ -46,8 +48,8 @@ new_pos = y.positions
 dif = old_pos - new_pos
 print(dif)  # We see that differences in the calculated position of molecules is negligible
 
-x.show_cells(1, time_step=time_step_old)  # Continue simulation until 1 hour
-y.show_cells(1, time_step=time_step_new)
+x.simulate(1)  # Continue simulation until 1 hour
+y.simulate(1)
 
 old_pos2 = x.positions
 new_pos2 = y.positions
