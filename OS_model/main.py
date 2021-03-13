@@ -505,6 +505,8 @@ class Monolayer:
             normalised by the fractional length at time 0, and the corresponding time values in the first.
         """
         normalising_constant = self.initial_fractional_length
+        if normalising_constant == 0:
+            normalising_constant = 0.0001
         if end_time < self.sim_time:  # If the desired simulation time has already been passed, reset cells
             self.reset()
         length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
