@@ -6,9 +6,6 @@ from matplotlib import pyplot as plt
 from matplotlib import rc
 from numpy import genfromtxt
 
-rc('text', usetex=True)
-rc('font', family='serif')
-
 time_step = 0.005
 end_time = 100
 simulation_count = 10
@@ -41,11 +38,11 @@ times = np.linspace(0, end_time, int(end_time / time_step) + 1)
 #         jobs.append(p)
 #         p.start()
 
-lam_vals = (0.01, 0.1, 1, 10, 100)
+rc('text', usetex=True)
+rc('font', family='serif')
 
 plot_every = 20  # Determines how frequently we pull data points to plot.
 plot_times = times[0::plot_every]
-
 palette = ['tab:red', 'k', 'tab:cyan', 'tab:blue', 'tab:purple']
 fig = plt.figure(1)
 for index, lam in enumerate((0.01, 0.1, 1, 10, 100)):

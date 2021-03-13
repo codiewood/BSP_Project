@@ -6,11 +6,6 @@ from matplotlib import pyplot as plt
 from matplotlib import rc
 from numpy import genfromtxt
 
-rc('text', usetex=True)
-rc('font', family='serif')
-
-# Generate data
-
 time_step = 0.005
 end_time = 100
 simulation_count = 10
@@ -43,12 +38,10 @@ times = np.linspace(0, end_time, int(end_time / time_step) + 1)
 #         jobs.append(p)
 #         p.start()
 
-# k_pert_vals = (0.01,0.1,0,1,10,100)
-# file_name = str(k_pert).replace('.', '_') + '_frac_length_data.txt'
-
+rc('text', usetex=True)
+rc('font', family='serif')
 
 plot_every = 20  # Determines how frequently we pull data points to plot.
-
 plot_times = times[0::plot_every]
 palette = ['tab:cyan', 'tab:blue', 'tab:purple', 'k', 'tab:orange', 'tab:red']
 fig = plt.figure(1)

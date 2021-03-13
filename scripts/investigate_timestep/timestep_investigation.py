@@ -1,6 +1,5 @@
 import OS_model
 from numpy import random
-
 # import numpy as np
 
 time_step_old = 0.005
@@ -10,12 +9,11 @@ random.seed(72)
 x = OS_model.Monolayer(size=5)
 x.set_k_pert(k_pert=0)  # Remove randomness so that simulations are 'the same'
 x.show_cells()
+
 # Writing data file
 # f = open('timestep_forces_data.txt', 'a')
-
 # f.write("Initial positions \n")
 # np.savetxt(f, x.positions, fmt='%1.3f', newline=", ")
-
 # f.write("\n Initial forces with old time_step \n")
 # np.savetxt(f, x.interaction_forces(), fmt='%1.3f', newline=", ")
 
@@ -24,7 +22,6 @@ x.show_cells(0.01, time_step=time_step_old)  # Run simulation
 # Writing data file
 # f.write("\n Forces at 0.01 with old time_step \n")
 # np.savetxt(f, x.interaction_forces(), fmt='%1.3f', newline=", ")
-
 # f.write("\n Positions at 0.01 with old time_step \n")
 # np.savetxt(f, x.positions, fmt='%1.3f', newline=", ")
 
@@ -40,10 +37,8 @@ y.show_cells(time=0.01, time_step=time_step_new)  # Run simulation
 
 # f.write("\n Forces at 0.01 with new time_step \n")
 # np.savetxt(f, y.interaction_forces(), fmt='%1.3f', newline=", ")
-
 # f.write("\n Positions at 0.01 with new time_step \n")
 # np.savetxt(f, y.positions, fmt='%1.3f', newline=", ")
-
 # f.close()
 
 old_pos = x.positions
