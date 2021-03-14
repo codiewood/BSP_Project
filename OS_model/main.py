@@ -36,7 +36,7 @@ def random_unit_vector():
 class Monolayer:
     """Monolayer of cells in 2D space"""
 
-    def __init__(self, p=0.5, size=10, rand=False, n=50):
+    def __init__(self, p=0.5, size=10, rand=False, n=50, space=False):
         """
         Initialises the monolayer with cells of diameter 1.
 
@@ -80,6 +80,10 @@ class Monolayer:
         self.initial_fractional_length = self.fractional_length()
         self.division_timer = None
         self.division_rates = None
+        if space:
+            self.space = 4
+        else:
+            self.space = 0
 
     def set_mu(self, mu):
         """
@@ -386,6 +390,7 @@ class Monolayer:
 
         """
         drag = self.sim_params[2]
+        radius = max(self.cell_radius)
         positions_for_update = np.zeros_like(self.positions)
         interaction_forces = self.interaction_forces()
         random_forces = self.random_forces()
@@ -394,10 +399,10 @@ class Monolayer:
             net_force = interaction_forces[cell_index] + random_forces[cell_index]
             new_position = current_position + self.time_step * net_force / drag
             for i in range(2):  # Implementing no flux reflective boundary condition
-                if new_position[i] < 0:
-                    new_position[i] = -new_position[i]
-                elif new_position[i] > self.size:
-                    new_position[i] = 2 * self.size - new_position[i]
+                if new_position[i] < -self.space * radius:
+                    new_position[i] = -2 * self.space * radius - new_position[i]
+                elif new_position[i] > self.size + self.space * radius:
+                    new_position[i] = 2 * (self.size + self.space * radius) - new_position[i]
             positions_for_update[cell_index] = new_position
         self.positions = positions_for_update
         self.sim_time += self.time_step
@@ -448,8 +453,9 @@ class Monolayer:
         """
         vmax, radius = self.size, max(self.cell_radius)
         fig, ax = plt.subplots()
-        ax.set_xlim(-radius, vmax + radius)
-        ax.set_ylim(-radius, vmax + radius)
+        spacing = self.space + 1
+        ax.set_xlim(-spacing * radius, vmax + spacing * radius)
+        ax.set_ylim(-spacing * radius, vmax + spacing * radius)
         ax.set_aspect(1)
         ax.set_yticklabels([])
         ax.set_xticklabels([])
@@ -463,7 +469,7 @@ class Monolayer:
                    ncol=len(leg), mode="expand", borderaxespad=0.)
         return fig, ax
 
-    def show_cells(self, show_interactions=False):
+    def show_cells(self, show_interactions=False, file_name=None):
         """
         Shows a visual representation of the current cell configuration of the monolayer.
 
@@ -471,6 +477,10 @@ class Monolayer:
         ----------
         show_interactions : bool
             'True' will show the interaction areas of each cell. Default is False.
+
+        file_name : str
+            String of desired file name, in the format 'file_name.pdf'. If None, will not save.
+            Default is None.
 
         """
         r_max = self.sim_params[0]
@@ -487,6 +497,8 @@ class Monolayer:
             cell_index += 1
         plt.title('Cells at ' + str(round(self.sim_time, 3)) + ' hours')
         plt.show()
+        if file_name is not None:
+            fig.savefig(file_name, bbox_inches='tight', )
 
     def measure_sorting(self, end_time):
         """
