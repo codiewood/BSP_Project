@@ -100,19 +100,6 @@ def test_set_random_cells():
     assert x.initial_positions == ((8.276, 4.401), (6.06, 2.932))
 
 
-def test_generate_initial_positions_array():
-    """
-    Test the function `generate_initial_positions_array` in utils.py
-    """
-    positions = ((1,2),(4,15),(6.2,3.6))
-    x = generate_initial_positions_array(positions)
-    for i in range(2):
-        for j in range(2):
-            assert x[i][j] == positions[i][j]
-    assert isinstance(x, np.ndarray)
-    assert x.shape == (3,2)
-
-
 def test_neighbours():
     """
     Test the function `Monolayer.neighbours` in monolayer.py
@@ -177,12 +164,14 @@ def test_natural_separation():
     Test the simulations have the correct expected behaviour when we have two cells of the same type.
     Started from their natural separation, we expect them to stay close. Similarly for slight deviations.
     """
-    random.seed(1234)
     base = OS_model.Monolayer(size=5)
+    base.set_k_pert(0)
     base.manual_cell_placement(((2.0, 2.0), (2.0, 3.0)), [0, 0])
     apart = OS_model.Monolayer(size=5)
+    apart.set_k_pert(0)
     apart.manual_cell_placement(((2.0, 1.8), (2.0, 3.0)), [0, 0])
     overlap = OS_model.Monolayer(size=5)
+    overlap.set_k_pert(0)
     overlap.manual_cell_placement(((2.0, 2.2), (2.0, 3.0)), [0, 0])
     dist = np.zeros((21, 3))
     for i in range(21):
@@ -195,7 +184,7 @@ def test_natural_separation():
     base_average_distance = sum(dist[:, 0]) / 21
     apart_average_distance = sum(dist[:, 1]) / 21
     overlap_average_distance = sum(dist[:, 2]) / 21
-    error = 0.025
+    error = 0.01
     assert abs(base_average_distance - 1) <= error
     assert abs(apart_average_distance - 1) <= error
     assert abs(overlap_average_distance - 1) <= error

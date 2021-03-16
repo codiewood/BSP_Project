@@ -1,36 +1,37 @@
 import numpy as np
 from numpy import random
 import math
-from math import sqrt, log, exp, floor
+from math import sqrt, log, exp
 from matplotlib import pyplot as plt
-from matplotlib import patches as mpatches
 from scipy import spatial
+from .utils import random_unit_vector, set_random_cells, set_cell_sheet, generate_initial_positions_array, \
+    random_forces, generate_axes
 
 
-def uniform_coords(lim):
-    """
-    Generates uniformly distributed random coordinates in the 2D square, (0,lim)^2.
-
-    Parameters
-    ----------
-    lim : int, float
-        Upper bound of coordinate value in both the x and y directions.
-
-    Returns
-    -------
-    tuple
-        2D coordinates.
-    """
-    x = round(random.uniform(lim), 3)
-    y = round(random.uniform(lim), 3)
-    coords = (x, y)
-    return coords
-
-
-def random_unit_vector():
-    x, y = random.normal(size=2)
-    mag = sqrt(x ** 2 + y ** 2)
-    return np.asarray([x / mag, y / mag])
+# def uniform_coords(lim):
+#     """
+#     Generates uniformly distributed random coordinates in the 2D square, (0,lim)^2.
+#
+#     Parameters
+#     ----------
+#     lim : int, float
+#         Upper bound of coordinate value in both the x and y directions.
+#
+#     Returns
+#     -------
+#     tuple
+#         2D coordinates.
+#     """
+#     x = round(random.uniform(lim), 3)
+#     y = round(random.uniform(lim), 3)
+#     coords = (x, y)
+#     return coords
+#
+#
+# def random_unit_vector():
+#     x, y = random.normal(size=2)
+#     mag = sqrt(x ** 2 + y ** 2)
+#     return np.asarray([x / mag, y / mag])
 
 
 class Monolayer:
@@ -60,15 +61,17 @@ class Monolayer:
         self.k_c = 5
         self.k_pert = 1
         self.sim_time = 0
-        self.sim_params = (2.5, 0.05, 1)
+        self.r_max = 2.5
+        self.mag = 0.05
+        self.drag = 1
         self.time_step = 0.005
         self.size = size
         if rand:
             self.num_cells = n
-            self.initial_positions = self.set_random_cells()
+            self.initial_positions = set_random_cells(n, size)
         else:
-            self.initial_positions = self.set_cell_sheet()
-        self.positions = self.generate_initial_positions_array()
+            self.initial_positions = set_cell_sheet(radius=0.5, size=size)
+        self.positions = generate_initial_positions_array(self.initial_positions)
         if not rand:
             self.num_cells = len(self.positions)
         self.type_0 = round(self.num_cells * p)
@@ -140,117 +143,53 @@ class Monolayer:
         """
         self.time_step = time_step
 
-    def simulation_parameters(self, r_max, mag, drag):
+    def set_r_max(self, r_max):
         """
-        Initialises the simulation parameters.
+        Initialises the maximum interaction distance for cells in the monolayer.
 
         Parameters
         ----------
         r_max : int, float
             The maximum euclidean distance permitting interaction between two cells. Default is 2.5 cell diameters.
 
-        mag : int, float
-            Base magnitude of perturbation. Default is 0.05.
-
-        drag : int, float
-            The drag coefficient. Default is 1.
         """
-        self.sim_params = (r_max, mag, drag)
+        self.r_max = r_max
 
-    def set_random_cells(self):
+    def set_mag(self, mag):
         """
-        Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
-        where each cell centre is random (uniformly distributed).
-
-        Returns
-        -------
-        tuple
-            Tuple of tuples, representing the initial (random) coordinates of each cell.
-        """
-        cell_positions = ()
-        for _ in range(self.num_cells):
-            x = (uniform_coords(self.size),)
-            cell_positions = cell_positions + x
-        return cell_positions
-
-    def generate_cell_rows(self, n):
-        """
-        Generates a tuple of coordinates for the initial positions of two rows of cells within the monolayer,
-        where cells are packed into a hexagonal lattice.
+        Initialises the magnitude of perturbation for the simulation.
 
         Parameters
         ----------
-        n : int
-            The iteration index of the function, as it is called by set_cell_sheet. Determines the coordinates of the
-            first cell placed. n = 0 will start from the lower left corner of the domain.
-
-        Returns
-        -------
-        tuple
-            Tuple of tuples, representing the initial coordinates of each cell in a set of two cell rows.
+        mag : int, float
+            Base magnitude of perturbation. Default is 0.05.
         """
-        radius = 0.5
-        x = radius
-        y = radius * (sqrt(3) * 2 * n + 1)
-        row_switches = 0
-        cell_rows = ()
-        while radius <= x <= self.size - radius:
-            if radius <= y <= self.size - radius:
-                new_cell = ((x, y),)
-                cell_rows = cell_rows + new_cell
-            x += radius
-            if row_switches / 2 == row_switches // 2:
-                y += sqrt(3) * radius
-            else:
-                y -= sqrt(3) * radius
-            row_switches += 1
-        return cell_rows
+        self.mag = mag
 
-    def set_cell_sheet(self):
+    def set_drag(self, drag):
         """
-        Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
-        where cells are packed into a hexagonal lattice.
+        Initialises the simulation parameters.
 
-        Returns
-        -------
-        tuple
-            Tuple of tuples, representing the initial coordinates of each cell in the monolayer.
+        Parameters
+        ----------
+        drag : int, float
+            The drag coefficient. Default is 1.
         """
-        radius = 0.5
-        cell_sheet = ()
-        for row_set in range(floor(self.size / (2 * radius))):
-            cell_sheet = cell_sheet + self.generate_cell_rows(row_set)
-        return cell_sheet
+        self.drag = drag
 
     def manual_cell_placement(self, coordinates, types):
         self.initial_positions = coordinates
-        self.positions = self.generate_initial_positions_array()
+        self.positions = generate_initial_positions_array(self.initial_positions)
         self.num_cells = len(self.positions)
         self.cell_types = np.asarray(types)
         self.type_1 = sum(self.cell_types)
         self.type_0 = self.num_cells - self.type_1
         self.cell_radius = np.asarray([0.5] * self.num_cells)
 
-    def generate_initial_positions_array(self):
-        """
-        Generates a n x 2 array of coordinates for the initial positions of all n cells within the monolayer.
-        Note this generates an array, which is mutable.
-
-        Returns
-        -------
-        np.ndarray
-            n x 2 array of lists, representing the coordinates of each cell.
-        """
-        mutable_positions = []
-        for xi, yi in self.initial_positions:
-            coords = np.array([xi, yi])
-            mutable_positions.append(coords)
-        return np.stack(mutable_positions)
-
     def neighbours(self, radius):
         """
         Generates a list of the neighbours of each cell in the monolayer, where a neighbour is
-        another cell in the monolayer whose centre is within the interaction radius (r_max) of the specified cell.
+        another cell in the monolayer whose centre is within the chosen interaction radius of the specified cell.
 
         Returns
         -------
@@ -342,7 +281,7 @@ class Monolayer:
             An n x 2 array, where n is the number of cells in the monolayer. The ith entry contains
             the total 2D force acting on cell i caused by neighbouring cells.
         """
-        neighbours = self.neighbours(self.sim_params[0])
+        neighbours = self.neighbours(self.r_max)
         forces = np.zeros((self.num_cells, 2))
         for cell_a_index in range(self.num_cells):
             cell_a = self.positions[cell_a_index]
@@ -369,35 +308,23 @@ class Monolayer:
                     forces[cell_b_index] -= f
         return forces
 
-    def random_forces(self):
-        """
-        A function that generates random perturbation forces for each cell in the monolayer.
-
-        Returns
-        -------
-        np.array
-            An n x 2 array of the random perturbation forces acting on each cell in the monolayer.
-        """
-        mag = self.sim_params[1]
-        scale = sqrt(2 * self.k_pert * mag / self.time_step)
-        force = random.normal(0, 1, self.positions.shape)
-        return scale * force
-
     def simulate_step(self):
         """
         Simulates one time step of the model, using a forward-Euler time step equation, and updates the
         position of each cell in the monolayer accordingly. Implements reflective BCs.
 
         """
-        drag = self.sim_params[2]
+        if self.division_timer is not None:
+            self.cell_division()
         radius = max(self.cell_radius)
         positions_for_update = np.zeros_like(self.positions)
         interaction_forces = self.interaction_forces()
-        random_forces = self.random_forces()
+        scale = sqrt(2 * self.k_pert * self.mag / self.time_step)
+        rand_forces = random_forces(scale=scale, shape=self.positions.shape)
         for cell_index in range(self.num_cells):
             current_position = self.positions[cell_index]
-            net_force = interaction_forces[cell_index] + random_forces[cell_index]
-            new_position = current_position + self.time_step * net_force / drag
+            net_force = interaction_forces[cell_index] + rand_forces[cell_index]
+            new_position = current_position + self.time_step * net_force / self.drag
             for i in range(2):  # Implementing no flux reflective boundary condition
                 if new_position[i] < -self.space * radius:
                     new_position[i] = -2 * self.space * radius - new_position[i]
@@ -411,7 +338,7 @@ class Monolayer:
         """
         Resets the entire monolayer to the initial position state, setting the simulation time count back to 0.
         """
-        self.positions = self.generate_initial_positions_array()
+        self.positions = generate_initial_positions_array(self.initial_positions)
         self.sim_time = 0
         self.num_cells = len(self.initial_positions)
 
@@ -431,43 +358,9 @@ class Monolayer:
             self.reset()
         if end_time != self.sim_time:
             length = end_time - self.sim_time  # Calculate remaining time needed to run simulation
-            its = math.ceil(length / self.time_step)  # Calculate number of iterations needed for end time to be reached
+            its = int(length / self.time_step)  # Calculate number of iterations needed for end time to be reached
             for _ in range(its):
-                if self.division_timer is not None:
-                    self.cell_division()
                 self.simulate_step()
-
-    def generate_axes(self, show_interactions=False):
-        """
-        Generates the axes and plot onto which cells can be drawn by the show_cells function.
-
-        Parameters
-        ----------
-        show_interactions : bool
-            'True' will show the interaction areas (with radius r_max) of each cell. Default is False.
-
-        Returns
-        -------
-        fig, ax :
-            The figure and axis required for plotting.
-        """
-        vmax, radius = self.size, max(self.cell_radius)
-        fig, ax = plt.subplots()
-        spacing = self.space + 1
-        ax.set_xlim(-spacing * radius, vmax + spacing * radius)
-        ax.set_ylim(-spacing * radius, vmax + spacing * radius)
-        ax.set_aspect(1)
-        ax.set_yticklabels([])
-        ax.set_xticklabels([])
-        plum_patch = mpatches.Patch(facecolor='plum', edgecolor='k', label='Type 0')
-        blue_patch = mpatches.Patch(facecolor='royalblue', edgecolor='k', label='Type 1')
-        leg = [plum_patch, blue_patch]
-        if show_interactions:
-            int_patch = mpatches.Patch(facecolor='grey', edgecolor='k', alpha=0.15, label='Interaction')
-            leg.append(int_patch)
-        plt.legend(handles=leg, bbox_to_anchor=((3 - len(leg)) / 6, -0.15, len(leg) / 3, .102), loc='upper left',
-                   ncol=len(leg), mode="expand", borderaxespad=0.)
-        return fig, ax
 
     def show_cells(self, show_interactions=False, file_name=None):
         """
@@ -483,19 +376,20 @@ class Monolayer:
             Default is None.
 
         """
-        r_max = self.sim_params[0]
         cell_colour = ['plum', 'royalblue']
-        fig, ax = self.generate_axes(show_interactions)
+        radius = max(self.cell_radius)
+        fig, ax = generate_axes(show_interactions=show_interactions, radius=radius, size=self.size,
+                                spacing=self.space + 1)
         cell_index = 0
         for xi, yi, cell_type in zip(self.positions[:, 0], self.positions[:, 1], self.cell_types):
             if show_interactions:
-                interaction_zone = plt.Circle((xi, yi), radius=r_max, facecolor='grey', edgecolor='k', alpha=0.15)
+                interaction_zone = plt.Circle((xi, yi), radius=self.r_max, facecolor='grey', edgecolor='k', alpha=0.15)
                 fig.gca().add_artist(interaction_zone)
             cell = plt.Circle((xi, yi), radius=self.cell_radius[cell_index],
                               facecolor=cell_colour[cell_type], edgecolor='k')
             fig.gca().add_artist(cell)
             cell_index += 1
-        plt.title('Cells at ' + str(round(self.sim_time, 3)) + ' hours')
+        plt.title('Cells at ' + str(round(self.sim_time, 1)) + ' hours')
         plt.show()
         if file_name is not None:
             fig.savefig(file_name, bbox_inches='tight', )
@@ -504,6 +398,9 @@ class Monolayer:
         """
         Simulates the model from its current state until 'end_time' (or from time 0 until 'end_time' if this time has
         already been passed), recording the fractional length at each time step.
+
+        Note, if the model has an initial fractional length of 0 (fully sorted) then fractional lengths
+        returned are not normalised.
 
         Parameters
         ----------
@@ -518,7 +415,7 @@ class Monolayer:
         """
         normalising_constant = self.initial_fractional_length
         if normalising_constant == 0:
-            normalising_constant = 0.0001
+            normalising_constant = 1
         if end_time < self.sim_time:  # If the desired simulation time has already been passed, reset cells
             self.reset()
         length = end_time - self.sim_time  # Calculate remaining time needed to run simulation for
