@@ -3,17 +3,9 @@ import numpy as np
 from numpy import random
 
 
-def test_uniform_coords():
-    """
-    Test the function `uniform_coords` in main.py
-    """
-    random.seed(1234)
-    assert OS_model.uniform_coords(20) == (16.361, 8.18)
-
-
 def test_set_mu():
     """
-    Test the function `Monolayer.set_mu` in main.py
+    Test the function `Monolayer.set_mu` in monolayer.py
     """
     x = OS_model.Monolayer()
     assert x.mu == 50
@@ -24,7 +16,7 @@ def test_set_mu():
 
 def test_set_time_step():
     """
-    Test the function `Monolayer.set_time_step` in main.py
+    Test the function `Monolayer.set_time_step` in monolayer.py
     """
     x = OS_model.Monolayer()
     assert x.time_step == 0.005
@@ -35,7 +27,7 @@ def test_set_time_step():
 
 def test_set_lam():
     """
-    Test the function `Monolayer.set_lam` in main.py
+    Test the function `Monolayer.set_lam` in monolayer.py
     """
     x = OS_model.Monolayer()
     assert x.lam == 0.1
@@ -46,7 +38,7 @@ def test_set_lam():
 
 def test_set_k_c():
     """
-    Test the function `Monolayer.set_k_c` in main.py
+    Test the function `Monolayer.set_k_c` in monolayer.py
     """
     x = OS_model.Monolayer()
     assert x.k_c == 5
@@ -57,7 +49,7 @@ def test_set_k_c():
 
 def test_set_k_pert():
     """
-    Test the function `Monolayer.set_k_pert` in main.py
+    Test the function `Monolayer.set_k_pert` in monolayer.py
     """
     x = OS_model.Monolayer()
     assert x.k_pert == 1
@@ -66,20 +58,42 @@ def test_set_k_pert():
     assert x.k_pert == 16
 
 
-def test_simulation_parameters():
+def test_set_drag():
     """
-    Test the function `Monolayer.simulation_parameters` in main.py
+    Test the function `Monolayer.set_drag` in monolayer.py
     """
     x = OS_model.Monolayer()
-    assert x.sim_params[0] == 2.5 and x.sim_params[1] == 0.05 and x.sim_params[2] == 1
+    assert x.drag == 1
 
-    x.simulation_parameters(1, 2, 3)
-    assert x.sim_params[0] == 1 and x.sim_params[1] == 2 and x.sim_params[2] == 3
+    x.set_drag(16)
+    assert x.drag == 16
+
+
+def test_set_r_max():
+    """
+        Test the function `Monolayer.set_r_max` in monolayer.py
+        """
+    x = OS_model.Monolayer()
+    assert x.r_max == 2.5
+
+    x.set_r_max(1)
+    assert x.r_max == 1
+
+
+def test_set_mag():
+    """
+    Test the function `Monolayer.set_mag` in monolayer.py
+    """
+    x = OS_model.Monolayer()
+    assert x.mag == 0.05
+
+    x.set_mag(0.2)
+    assert x.mag == 0.2
 
 
 def test_set_random_cells():
     """
-    Test the function `Monolayer.set_random_cells` in main.py
+    Test the functionality of producing random initial cells via `set_random_cells` in utils.py
     """
     random.seed(1234)
     x = OS_model.Monolayer(rand=True, n=2)
@@ -88,59 +102,54 @@ def test_set_random_cells():
 
 def test_generate_initial_positions_array():
     """
-    Test the function `Monolayer.generate_initial_positions_array` in main.py
+    Test the function `generate_initial_positions_array` in utils.py
     """
-    random.seed(1234)
-    x = OS_model.Monolayer()
+    positions = ((1,2),(4,15),(6.2,3.6))
+    x = generate_initial_positions_array(positions)
     for i in range(2):
         for j in range(2):
-            assert x.generate_initial_positions_array()[i][j] == x.initial_positions[i][j]
-    assert isinstance(x.generate_initial_positions_array(), np.ndarray)
+            assert x[i][j] == positions[i][j]
+    assert isinstance(x, np.ndarray)
+    assert x.shape == (3,2)
 
 
 def test_neighbours():
     """
-    Test the function `Monolayer.neighbours` in main.py
+    Test the function `Monolayer.neighbours` in monolayer.py
     """
     x = OS_model.Monolayer(size=5)
     x.manual_cell_placement(((0.0, 0.0), (4.0, 3.0), (6.0, 6.0)), [0, 0, 0])
     assert x.neighbours(5) == [[0, 1], [0, 1, 2], [1, 2]]
 
 
-def test_interaction_forces():
-    """
-    Test the function `Monolayer.interaction_forces` in main.py
-    """
-
-
 def test_simulation_times():
     """
-    Test the functions `Monolayer.simulate_step`, 'Monolayer.simulate', 'Monolayer.measure_sorting' in main.py.
+    Test the functions `Monolayer.simulate_step`, 'Monolayer.simulate', 'Monolayer.measure_sorting' in monolayer.py.
     Checks that the simulation timings are correctly implemented.
     """
     x = OS_model.Monolayer()
     x.simulate_step()
-    assert round(x.sim_time, 3) == x.time_step
+    assert round(x.sim_time, 4) == x.time_step
 
     x.simulate(end_time=0)
     assert x.sim_time == 0
 
     x.simulate(end_time=0.1)
-    assert round(x.sim_time, 3) == 0.1
+    assert round(x.sim_time, 4) == 0.1
 
     x.simulate(end_time=0.01)
-    assert round(x.sim_time, 3) == 0.01
+    assert round(x.sim_time, 4) == 0.01
 
     _ = x.measure_sorting(end_time=0.1)
-    assert round(x.sim_time, 3) == 0.1
+    assert round(x.sim_time, 4) == 0.1
 
     _ = x.measure_sorting(end_time=0)
-    assert round(x.sim_time, 3) == 0
+    assert round(x.sim_time, 4) == 0
 
 
 def test_reset():
     """
-    Test the function `Monolayer.reset` in main.py
+    Test the function `Monolayer.reset` in monolayer.py
     """
     random.seed(1234)
     x = OS_model.Monolayer(rand=True)
@@ -152,15 +161,9 @@ def test_reset():
             assert x.positions[i][j] == x.initial_positions[i][j]
 
 
-def test_simulate():
-    """
-    Test the function `Monolayer.simulate` in main.py
-    """
-
-
 def test_manual_cell_placement():
     """
-    Test the function `Monolayer.manual_cell_placement` in main.py
+    Test the function `Monolayer.manual_cell_placement` in monolayer.py
     """
     x = OS_model.Monolayer(size=5)
     x.manual_cell_placement(((2.0, 2.0), (2.0, 3.0)), [0, 1])
