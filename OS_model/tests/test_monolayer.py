@@ -1,6 +1,7 @@
 import OS_model
 import numpy as np
 from numpy import random
+from math import sqrt
 
 
 def test_set_mu():
@@ -93,7 +94,7 @@ def test_set_mag():
 
 def test_set_random_cells():
     """
-    Test the functionality of producing random initial cells via `set_random_cells` in utils.py
+    Test the functionality of producing random initial cells for the monolayer, via `set_random_cells` in utils.py
     """
     random.seed(1234)
     x = OS_model.Monolayer(rand=True, n=2)
@@ -102,7 +103,7 @@ def test_set_random_cells():
 
 def test_neighbours():
     """
-    Test the function `Monolayer.neighbours` in monolayer.py
+    Test the function `Monolayer.neighbours` in monolayer.py acts as expected
     """
     x = OS_model.Monolayer(size=5)
     x.manual_cell_placement(((0.0, 0.0), (4.0, 3.0), (6.0, 6.0)), [0, 0, 0])
@@ -136,7 +137,7 @@ def test_simulation_times():
 
 def test_reset():
     """
-    Test the function `Monolayer.reset` in monolayer.py
+    Tests the function `Monolayer.reset` in monolayer.py returns cells to their initial state
     """
     random.seed(1234)
     x = OS_model.Monolayer(rand=True)
@@ -150,7 +151,8 @@ def test_reset():
 
 def test_manual_cell_placement():
     """
-    Test the function `Monolayer.manual_cell_placement` in monolayer.py
+    Test the function `Monolayer.manual_cell_placement` in monolayer.py places cells as expected,
+    and updates class properties
     """
     x = OS_model.Monolayer(size=5)
     x.manual_cell_placement(((2.0, 2.0), (2.0, 3.0)), [0, 1])
@@ -191,6 +193,9 @@ def test_natural_separation():
 
 
 def test_manual_division_timer():
+    """
+    Tests the function `Monolayer.manual_division_timer` in monolayer.py sets the correct division times and rates
+    """
     x = OS_model.Monolayer(size=5)
     x.manual_cell_placement(([2, 2], [4, 4]), [1, 0])
     x.manual_division_timer((5, 1), (7, 2))
@@ -219,3 +224,33 @@ def test_set_division_timer():
     x.set_division_timer(11, 15)
     assert np.array_equal(x.division_rates, np.asarray([15, 11]))
     assert len(x.division_timer) == 2
+
+
+def test_spacing():
+    x = OS_model.Monolayer(size=1)
+    y = OS_model.Monolayer(space=True)
+    assert x.space == 0 and y.space == 4
+    x.set_space()
+    assert x.space == 4
+
+
+def test_boundary_condition():
+    """
+    Test the simulations have the correct expected behaviour when at the boundary.
+    """
+    for i in range(10):
+        random.seed(143 * i)
+        x = OS_model.Monolayer(size=1)
+        x.set_k_pert(100)
+        scale = sqrt(2 * x.k_pert * x.mag / x.time_step)
+        x.simulate_step()
+        random.seed(143 * i)
+        f = OS_model.random_forces(scale, x.positions.shape)
+        z = np.array([0.5, 0.5]) + (x.time_step / x.drag) * f
+        for j in range(2):
+            if z[0][j] < 0:
+                assert x.positions[0][j] == -z[0][j]
+            elif z[0][j] > 1:
+                assert x.positions[0][j] == 2 - z[0][j]
+            else:
+                assert x.positions[0][j] == z[0][j]

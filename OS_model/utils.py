@@ -41,32 +41,34 @@ def random_unit_vector():
 
 def generate_cell_rows(radius, size, n):
     """
-        Generates a tuple of coordinates for the initial positions of two rows of cells within the monolayer,
-        where cells are packed into a hexagonal lattice.
+    Generates a tuple of coordinates for the initial positions of two rows of cells within the monolayer,
+    where cells are packed into a hexagonal lattice.
 
-        Parameters
-        ----------
-        radius : int, float
-            The size of the cells being placed.
+    Parameters
+    ----------
+    radius : int, float
+        The size of the cells being placed, in length units.
 
-        size : int
-            The desired length of the first row of cells, in number of cells.
+    size : int
+        The desired size of the monolayer, in length units. Will cause rows of cells to be produced
+        which are completely contained within the square domain (0, size)^2.
 
-        n : int
-            The iteration index of the function, as it is called by set_cell_sheet. Determines the coordinates of the
-            first cell placed. n = 0 will start from the lower left corner of the domain.
+    n : int
+        The iteration index of the function, as it is called by set_cell_sheet. Determines the coordinates of the
+        first cell placed. n = 0 will start from the lower left corner of the domain,
+        with a cell centre (radius,radius).
 
-        Returns
-        -------
-        tuple
-            Tuple of tuples, representing the initial coordinates of each cell in a set of two cell rows.
-        """
+    Returns
+    -------
+    tuple
+        Tuple of tuples, representing the initial coordinates of each cell in a set of two cell rows.
+    """
     x = radius
     y = radius * (sqrt(3) * 2 * n + 1)
     row_switches = 0
     cell_rows = ()
     while radius <= x <= size - radius:
-        if radius <= y <= size - radius:
+        if radius <= y <= size - radius:  # Only adds a new cell if it is completely within the domain (0, size)^2
             new_cell = ((x, y),)
             cell_rows = cell_rows + new_cell
         x += radius
@@ -80,22 +82,23 @@ def generate_cell_rows(radius, size, n):
 
 def set_cell_sheet(radius, size):
     """
-        Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
-        where cells are packed into a hexagonal lattice.
+    Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
+    where cells are packed into a hexagonal lattice.
 
-        Parameters
-        ----------
-        radius : int, float
-            The size of the cells being placed.
+    Parameters
+    ----------
+    radius : int, float
+        The size of the cells being placed, in length units.
 
-        size : int
-            The desired length of the first row of cells, in number of cells.
+    size : int
+        The desired size of the monolayer, in length units. Will cause a hexagonal lattice of cells to be produced
+        which is completely contained within the square domain (0, size)^2.
 
-        Returns
-        -------
-        tuple
-            Tuple of tuples, representing the initial coordinates of each cell in the monolayer.
-        """
+    Returns
+    -------
+    tuple
+        Tuple of tuples, representing the initial coordinates of each cell in the lattice.
+    """
     cell_sheet = ()
     for row_set in range(floor(size / (2 * radius))):
         cell_sheet = cell_sheet + generate_cell_rows(radius, size, n=row_set)
@@ -104,14 +107,14 @@ def set_cell_sheet(radius, size):
 
 def set_random_cells(num_cells, size):
     """
-        Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
-        where each cell centre is random (uniformly distributed).
+    Randomly generates a tuple of N = num_cells 2D coordinates, where each coordinate is uniformly distributed on
+    the domain (0, size)^2.
 
-        Returns
-        -------
-        tuple
-            Tuple of tuples, representing the initial (random) coordinates of each cell.
-        """
+    Returns
+    -------
+    tuple
+        Tuple of tuples, with length num_cells, each tuple representing 2D coordinates.
+    """
     cell_positions = ()
     for _ in range(num_cells):
         x = (uniform_coords(size),)
@@ -119,18 +122,18 @@ def set_random_cells(num_cells, size):
     return cell_positions
 
 
-def generate_initial_positions_array(initial_positions):
+def generate_positions_array(positions):
     """
-        Generates a n x 2 array of coordinates from a tuple of n 2D tuples.
-        Note this generates an array, which is mutable.
+    Generates a n x 2 array of coordinates from a tuple of n 2D tuples.
+    Note this generates an array, which is mutable.
 
-        Returns
-        -------
-        np.ndarray
-            n x 2 array, representing the coordinates of each cell.
-        """
+    Returns
+    -------
+    np.ndarray
+        n x 2 array, representing the coordinates of each cell.
+    """
     mutable_positions = []
-    for xi, yi in initial_positions:
+    for xi, yi in positions:
         coords = np.array([xi, yi])
         mutable_positions.append(coords)
     return np.stack(mutable_positions)
@@ -140,10 +143,18 @@ def random_forces(scale, shape):
     """
     A function that generates random perturbation forces.
 
+    Parameters
+    ----------
+    scale : int, float
+        Scaling factor for the random force.
+
+    shape : tuple
+        The shape of the random force array to be outputted.
+
     Returns
     -------
     np.array
-        An n x 2 array of the random perturbation forces acting on each cell in the monolayer.
+        An array of the specified shape of the random perturbation forces.
     """
     force = random.normal(0, 1, shape)
     return scale * force
@@ -151,24 +162,30 @@ def random_forces(scale, shape):
 
 def generate_axes(radius, size, spacing, show_interactions=False):
     """
-        Generates the axes and plot onto which cells can be drawn by the show_cells function.
+    Generates the axes and figure onto which cells can be drawn by the show_cells function.
 
-        Parameters
-        ----------
-        radius: int, float
+    Parameters
+    ----------
+    radius : int, float
+        The size of the cells being placed, in length units.
 
-        size : int
+    size : int
+        The base size of the plot, before spacing is added.
+        Recommended: Set to the size value of the monolayer being plotted.
 
-        spacing: int
+    spacing: int
+        Indicates the amount of additional space shown around the monolayer, measured in number of cell radii.
+        Recommended: Set to 1 for a monolayer without additional space (when space = False). Set to 5 otherwise.
+        This will ensure any cell movement is contained completely within the figure.
 
-        show_interactions : bool
-            'True' will show the interaction areas (with radius r_max) of each cell. Default is False.
+    show_interactions : bool
+        'True' will show the interaction areas (with radius r_max) of each cell. Default is False.
 
-        Returns
-        -------
-        fig, ax :
-            The figure and axis required for plotting.
-        """
+    Returns
+    -------
+    fig, ax :
+        The figure and axis required for plotting.
+    """
     fig, ax = plt.subplots()
     ax.set_xlim(-spacing * radius, size + spacing * radius)
     ax.set_ylim(-spacing * radius, size + spacing * radius)

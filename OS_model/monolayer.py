@@ -4,34 +4,8 @@ import math
 from math import sqrt, log, exp
 from matplotlib import pyplot as plt
 from scipy import spatial
-from .utils import random_unit_vector, set_random_cells, set_cell_sheet, generate_initial_positions_array, \
+from .utils import random_unit_vector, set_random_cells, set_cell_sheet, generate_positions_array, \
     random_forces, generate_axes
-
-
-# def uniform_coords(lim):
-#     """
-#     Generates uniformly distributed random coordinates in the 2D square, (0,lim)^2.
-#
-#     Parameters
-#     ----------
-#     lim : int, float
-#         Upper bound of coordinate value in both the x and y directions.
-#
-#     Returns
-#     -------
-#     tuple
-#         2D coordinates.
-#     """
-#     x = round(random.uniform(lim), 3)
-#     y = round(random.uniform(lim), 3)
-#     coords = (x, y)
-#     return coords
-#
-#
-# def random_unit_vector():
-#     x, y = random.normal(size=2)
-#     mag = sqrt(x ** 2 + y ** 2)
-#     return np.asarray([x / mag, y / mag])
 
 
 class Monolayer:
@@ -39,22 +13,27 @@ class Monolayer:
 
     def __init__(self, p=0.5, size=10, rand=False, n=50, space=False):
         """
-        Initialises the monolayer with cells of diameter 1.
+        Initialises the monolayer with cells of diameter 1, and a reflective boundary condition.
 
         Parameters
         ----------
-        p : int, float
+        p : int, float, optional
             Proportion of cells which are of Type 0, taking values in [0,1]. Default is 0.5.
 
-        size : int
+        size : int, optional
             Size of the monolayer (maximum x and y coordinate for the cell centres). Default is 10.
 
-        rand : bool
+        rand : bool, optional
             Determines the initial configuration type in the monolayer. True corresponds to a random distribution
             of cells in the monolayer, whereas False corresponds to a hexagonal lattice structure. Default is False.
 
-        n : int
+        n : int, optional
             Number of cells in the monolayer. Only used when rand = True. Default is 50.
+
+        space: bool, optional
+            Determines if additional spacing is desired around the monolayer. If False, a square domain (0, size)^2
+            is created, with reflective boundaries. If True, this domain is expanded by 2 cell diameters.
+            Default is False.
         """
         self.mu = 50
         self.lam = 0.1
@@ -71,7 +50,7 @@ class Monolayer:
             self.initial_positions = set_random_cells(n, size)
         else:
             self.initial_positions = set_cell_sheet(radius=0.5, size=size)
-        self.positions = generate_initial_positions_array(self.initial_positions)
+        self.positions = generate_positions_array(self.initial_positions)
         if not rand:
             self.num_cells = len(self.positions)
         self.type_0 = round(self.num_cells * p)
@@ -134,7 +113,7 @@ class Monolayer:
 
     def set_time_step(self, time_step):
         """
-        Initialises the time_step for the simulation.
+        Initialises the time step for the simulation.
 
         Parameters
         ----------
@@ -157,7 +136,7 @@ class Monolayer:
 
     def set_mag(self, mag):
         """
-        Initialises the magnitude of perturbation for the simulation.
+        Initialises the base magnitude of perturbation for the simulation.
 
         Parameters
         ----------
@@ -168,7 +147,7 @@ class Monolayer:
 
     def set_drag(self, drag):
         """
-        Initialises the simulation parameters.
+        Initialises the drag/viscosity coefficient.
 
         Parameters
         ----------
@@ -177,9 +156,26 @@ class Monolayer:
         """
         self.drag = drag
 
+    def set_space(self):
+        """
+        Adds empty space around the monolayer, expanding the simulation domain by 2 cell diameters.
+        Allows for more freedom of movement during simulation.
+        Note: Equivalent of specifying space = True on initialising the monolayer.
+        """
+        self.space = 4
+
     def manual_cell_placement(self, coordinates, types):
+        """
+        Generates a list of the neighbours of each cell in the monolayer, where a neighbour is
+        another cell in the monolayer whose centre is within the chosen interaction radius of the specified cell.
+
+        Returns
+        -------
+        list
+            A list of lists, with the ith list being a list of the neighbours of cell i.
+        """
         self.initial_positions = coordinates
-        self.positions = generate_initial_positions_array(self.initial_positions)
+        self.positions = generate_positions_array(self.initial_positions)
         self.num_cells = len(self.positions)
         self.cell_types = np.asarray(types)
         self.type_1 = sum(self.cell_types)
@@ -338,7 +334,7 @@ class Monolayer:
         """
         Resets the entire monolayer to the initial position state, setting the simulation time count back to 0.
         """
-        self.positions = generate_initial_positions_array(self.initial_positions)
+        self.positions = generate_positions_array(self.initial_positions)
         self.sim_time = 0
         self.num_cells = len(self.initial_positions)
 
@@ -432,6 +428,24 @@ class Monolayer:
         return frac_length
 
     def set_division_timer(self, division_rate, division_rate_1=None):
+        """
+        Initialises cell division process in the monolayer, setting an exponentially distributed division
+        time for each cell.
+
+        Parameters
+        ----------
+        division_rate : int, float
+            The division rate, in cells per hour.
+
+        division_rate_1 : int, float
+            The division rate, in cells per hour.
+
+        Returns
+        -------
+        fractional_length : np.ndarray
+            An array containing the fractional lengths at each time step in the second row,
+            normalised by the fractional length at time 0, and the corresponding time values in the first.
+        """
         if division_rate_1 is None:
             division_rate_1 = division_rate
         self.division_rates = self.cell_types * (division_rate_1 - division_rate) + division_rate
