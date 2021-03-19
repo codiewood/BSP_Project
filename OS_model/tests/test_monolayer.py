@@ -254,3 +254,19 @@ def test_boundary_condition():
                 assert x.positions[0][j] == 2 - z[0][j]
             else:
                 assert x.positions[0][j] == z[0][j]
+
+
+def test_exponential():
+    """
+    Test the exponential distribution functions as expected (taking scale parameter) via Monte Carlo methods
+    """
+    random.seed(4325)
+    rate_param = 1 / 10
+    mean = 1 / rate_param
+    simulation_count = 100000
+    x = 0
+    for _ in range(simulation_count):
+        x += random.exponential(1 / rate_param)
+    mean_estimate = x / simulation_count
+    error = 0.05
+    assert mean - error <= mean_estimate <= mean + error

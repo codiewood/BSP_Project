@@ -435,30 +435,30 @@ class Monolayer:
         Parameters
         ----------
         division_rate : int, float
-            The division rate, in cells per hour.
+            The division rate, in cells per hour. Default is 1/24, corresponding to a cell cycle length of 24 hours.
+            Note: Should be strictly positive.
 
-        division_rate_1 : int, float
-            The division rate, in cells per hour.
+        division_rate_1 : int, float, None
+            The division rate, in cells per hour. If None, both cell types are taken to have the same division rate.
+            Default is None. Note: Should be strictly positive.
 
-        Returns
-        -------
-        fractional_length : np.ndarray
-            An array containing the fractional lengths at each time step in the second row,
-            normalised by the fractional length at time 0, and the corresponding time values in the first.
         """
         if division_rate_1 is None:
             division_rate_1 = division_rate
         self.division_rates = self.cell_types * (division_rate_1 - division_rate) + division_rate
         cell_clocks = np.zeros(self.num_cells)
         for index, rate in enumerate(self.division_rates):
-            cell_clocks[index] = random.exponential(rate)
+            cell_clocks[index] = random.exponential(1/rate)
         self.division_timer = cell_clocks
 
     def cell_division(self):
         initial_cell_count = self.num_cells
         epsilon = 0.5 * max(self.cell_radius)
         for cell_index in range(initial_cell_count):
-            if self.division_timer[cell_index] <= 0:  # If cell is ready to divide
+            division_time = self.division_timer[cell_index]
+            if division_time <= 0:  # If cell is ready to divide
+                self.division_timer[cell_index] = random.exponential(
+                    1/self.division_rates[cell_index])  # Reset mother cell timer
                 new_cell = self.positions[cell_index] + epsilon * random_unit_vector()
                 self.positions = np.append(self.positions, [new_cell], axis=0)
                 self.num_cells += 1
@@ -466,10 +466,8 @@ class Monolayer:
                                              0.5)  # Daughter cell has same size as other cells in monolayer
                 self.cell_types = np.append(self.cell_types,
                                             self.cell_types[cell_index])  # Daughter cell same type as mother cell
-                self.division_timer[cell_index] = random.exponential(
-                    self.division_rates[cell_index])  # Reset mother cell timer
                 self.division_timer = np.append(self.division_timer, random.exponential(
-                    self.division_rates[cell_index]))  # Add timer for daughter
+                    1/self.division_rates[cell_index]))  # Add timer for daughter
                 self.division_rates = np.append(self.division_rates,
                                                 self.division_rates[cell_index])  # Add division rate for daughter cell
                 self.type_1 = sum(self.cell_types)  # Update numbers of cell types
