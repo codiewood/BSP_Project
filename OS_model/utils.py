@@ -160,7 +160,7 @@ def random_forces(scale, shape):
     return scale * force
 
 
-def generate_axes(radius, size, spacing, show_interactions=False):
+def generate_axes(radius, size, spacing, show_interactions=False):  # pragma: no cover
     """
     Generates the axes and figure onto which cells can be drawn by the show_cells function.
 
