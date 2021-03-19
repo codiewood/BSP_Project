@@ -18,8 +18,8 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Part B Structured Project'
-copyright = '2020, Codie Wood'
-author = 'Codie Wood'
+copyright = '2021, Candidate 1024136'
+author = 'Candidate 1024136'
 
 
 # -- General configuration ---------------------------------------------------
