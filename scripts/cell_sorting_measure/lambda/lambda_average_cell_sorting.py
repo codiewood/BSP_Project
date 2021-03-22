@@ -33,6 +33,7 @@ def generate_data(lam):
     f.write("\n")
     f.close()
 
+
 generate_data(end_time)
 
 # Multiprocessing option for computational time

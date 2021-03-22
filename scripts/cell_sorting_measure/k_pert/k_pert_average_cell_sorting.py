@@ -33,6 +33,7 @@ def generate_data(k_pert):
     f.write("\n")
     f.close()
 
+
 # Multiprocessing for time efficiency
 if __name__ == '__main__':
     jobs = []

@@ -18,7 +18,7 @@ plot_times = times[0::plot_every]
 for col_param in (0, 0.01, 10, 100):
     param_vals = (0, 0.01, 10, 100, 1, 0.1, col_param)
     fig, ax = plt.subplots()
-    ax.set_ylim([-0.1,1.3])
+    ax.set_ylim([-0.1, 1.3])
     ax.grid(color='lightgray', linestyle='--', alpha=0.7)
     for index, param in enumerate(param_vals):
         file_name = str(param).replace('.', '_') + 'lambda_frac_length_spaced_data.txt'
@@ -41,7 +41,7 @@ for col_param in (0, 0.01, 10, 100):
         plt.plot(plot_times, plot_fractional_lengths[0], label=str(param), color=colour)
     plt.xlabel('Time')
     plt.ylabel('Fractional length')
-    #plt.legend(bbox_to_anchor=(1, 1, 1, 0), loc='upper left', title=r'$k_\textrm{pert}$')
+    # plt.legend(bbox_to_anchor=(1, 1, 1, 0), loc='upper left', title=r'$k_\textrm{pert}$')
     plt.show()
     plot_name = str(col_param).replace('.', '_') + 'lambda_frac_plot.pdf'
     fig.savefig(plot_name, bbox_inches='tight', )
