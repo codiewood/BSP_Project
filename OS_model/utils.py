@@ -41,8 +41,7 @@ def random_unit_vector():
 
 def generate_cell_rows(radius, size, n):
     """
-    Generates a tuple of coordinates for the initial positions of two rows of cells within the monolayer,
-    where cells are packed into a hexagonal lattice.
+    Generates a tuple of coordinates for the initial positions of two rows of cells in a hexagonal lattice.
 
     Parameters
     ----------
@@ -50,7 +49,7 @@ def generate_cell_rows(radius, size, n):
         The size of the cells being placed, in length units.
 
     size : int
-        The desired size of the monolayer, in length units. Will cause rows of cells to be produced
+        The desired size of the monolayer, in length units. Will cause two rows of cells to be produced
         which are completely contained within the square domain (0, size)^2.
 
     n : int
@@ -82,7 +81,7 @@ def generate_cell_rows(radius, size, n):
 
 def set_cell_sheet(radius, size):
     """
-    Generates a tuple of coordinates for the initial positions of all cells within the monolayer,
+    Generates a tuple of coordinates for the initial positions cells in a monolayer,
     where cells are packed into a hexagonal lattice.
 
     Parameters
@@ -149,7 +148,7 @@ def random_forces(scale, shape):
         Scaling factor for the random force.
 
     shape : tuple
-        The shape of the random force array to be outputted.
+        The shape of the random force array to be produced.
 
     Returns
     -------
@@ -171,7 +170,7 @@ def generate_axes(radius, size, spacing, show_interactions=False):  # pragma: no
 
     size : int
         The base size of the plot, before spacing is added.
-        Recommended: Set to the size value of the monolayer being plotted.
+        Recommended: If no cell divison, set to the size value of the monolayer being plotted.
 
     spacing: int
         Indicates the amount of additional space shown around the monolayer, measured in number of cell radii.

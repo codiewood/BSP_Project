@@ -80,7 +80,7 @@ class Monolayer:
 
     def set_lam(self, lam):
         """
-        Initialises scale factor by which to multiply the spring constant in the heterotypic interaction.
+        Initialises scale factor by which to multiply the spring constant in the attractive heterotypic interaction.
 
         Parameters
         ----------
@@ -130,7 +130,6 @@ class Monolayer:
         ----------
         r_max : int, float
             The maximum euclidean distance permitting interaction between two cells. Default is 2.5 cell diameters.
-
         """
         self.r_max = r_max
 
@@ -166,13 +165,15 @@ class Monolayer:
 
     def manual_cell_placement(self, coordinates, types):
         """
-        Generates a list of the neighbours of each cell in the monolayer, where a neighbour is
-        another cell in the monolayer whose centre is within the chosen interaction radius of the specified cell.
+        Helper function which allows manual cell placement for initial cell configuration to aid in testing.
 
-        Returns
-        -------
-        list
-            A list of lists, with the ith list being a list of the neighbours of cell i.
+        Parameters
+        ----------
+        coordinates: tuple
+            A tuple of tuples, containing the desired starting cell coordinates.
+
+        types: list, tuple
+            A list or tuple containing the desired cell types.
         """
         self.initial_positions = coordinates
         self.positions = generate_positions_array(self.initial_positions)
@@ -196,38 +197,6 @@ class Monolayer:
         cell_tree = spatial.KDTree(cell_positions)
         neighbours = cell_tree.query_ball_tree(cell_tree, r=radius)
         return neighbours
-
-    def cell_sorting_proportions(self):
-        props = np.zeros(self.num_cells)
-        neighbours = self.neighbours(2 * max(self.cell_radius))
-        for cell_index in range(self.num_cells):
-            surrounding_cells = neighbours[cell_index]
-            cell_type = self.cell_types[cell_index]
-            surrounding_types = []
-            for cell in surrounding_cells:
-                surrounding_types.append(self.cell_types[cell])
-            type_1_count = sum(surrounding_types[:])
-            total_cell_count = len(surrounding_cells)
-            if cell_type == 0:
-                prop = (total_cell_count - type_1_count) / total_cell_count
-            else:
-                prop = type_1_count / total_cell_count
-            props[cell_index] = prop
-        return props
-
-    def average_sorting_metric(self):
-        props = self.cell_sorting_proportions()
-        average_proportion = sum(props) / len(props)
-        return average_proportion
-
-    def cutoff_sorting_metric(self):
-        i = 0
-        props = self.cell_sorting_proportions()
-        for j in range(len(props)):
-            if props[j] > 0.5:
-                i += 1
-        prop_over_cutoff = i / len(props)
-        return prop_over_cutoff
 
     def fractional_length(self):
         """
@@ -307,8 +276,8 @@ class Monolayer:
     def simulate_step(self):
         """
         Simulates one time step of the model, using a forward-Euler time step equation, and updates the
-        position of each cell in the monolayer accordingly. Implements reflective BCs.
-
+        position of each cell in the monolayer accordingly. Implements reflective BCs when there is no cell
+        division, and free BCs otherwise.
         """
         if self.division_timer is not None:
             self.cell_division()
@@ -321,11 +290,12 @@ class Monolayer:
             current_position = self.positions[cell_index]
             net_force = interaction_forces[cell_index] + rand_forces[cell_index]
             new_position = current_position + self.time_step * net_force / self.drag
-            for i in range(2):  # Implementing no flux reflective boundary condition
-                if new_position[i] < -self.space * radius:
-                    new_position[i] = -2 * self.space * radius - new_position[i]
-                elif new_position[i] > self.size + self.space * radius:
-                    new_position[i] = 2 * (self.size + self.space * radius) - new_position[i]
+            if self.division_timer is None:
+                for i in range(2):  # Implementing no flux reflective boundary condition
+                    if new_position[i] < -self.space * radius:
+                        new_position[i] = -2 * self.space * radius - new_position[i]
+                    elif new_position[i] > self.size + self.space * radius:
+                        new_position[i] = 2 * (self.size + self.space * radius) - new_position[i]
             positions_for_update[cell_index] = new_position
         self.positions = positions_for_update
         self.sim_time += self.time_step
@@ -360,7 +330,7 @@ class Monolayer:
 
     def show_cells(self, show_interactions=False, file_name=None):
         """
-        Shows a visual representation of the current cell configuration of the monolayer.
+        Produces a visual representation of the current cell configuration of the monolayer.
 
         Parameters
         ----------
@@ -370,12 +340,15 @@ class Monolayer:
         file_name : str
             String of desired file name, in the format 'file_name.pdf'. If None, will not save.
             Default is None.
-
         """
         cell_colour = ['plum', 'royalblue']
         radius = max(self.cell_radius)
-        fig, ax = generate_axes(show_interactions=show_interactions, radius=radius, size=self.size,
-                                spacing=self.space + 1)
+        size = self.size
+        spacing = self.space + 1
+        if self.division_timer is not None and self.sim_time != 0:
+            spacing += np.mean(self.division_rates) * self.sim_time * self.size  # Keep cells in plot window
+        fig, ax = generate_axes(show_interactions=show_interactions, radius=radius, size=size,
+                                spacing=spacing)
         cell_index = 0
         for xi, yi, cell_type in zip(self.positions[:, 0], self.positions[:, 1], self.cell_types):
             if show_interactions:
@@ -435,11 +408,11 @@ class Monolayer:
         Parameters
         ----------
         division_rate : int, float
-            The division rate, in cells per hour. Default is 1/24, corresponding to a cell cycle length of 24 hours.
+            The division rate, in divisions per hour. Default is 1/24, corresponding to a cell cycle length of 24 hours.
             Note: Should be strictly positive.
 
         division_rate_1 : int, float, None
-            The division rate, in cells per hour. If None, both cell types are taken to have the same division rate.
+            The division rate, in divisions per hour. If None, both cell types are taken to have the same division rate.
             Default is None. Note: Should be strictly positive.
 
         """
@@ -452,6 +425,11 @@ class Monolayer:
         self.division_timer = cell_clocks
 
     def cell_division(self):
+        """
+        Checks the current division status of each cell in the monolayer, and implements cell division for any cells
+        ready to divide. Daughter cells are clones of the parent cell, placed in a random direction 0.25 cell diameters
+        away from the parent.
+        """
         initial_cell_count = self.num_cells
         epsilon = 0.5 * max(self.cell_radius)
         for cell_index in range(initial_cell_count):
@@ -476,5 +454,17 @@ class Monolayer:
                 self.division_timer[cell_index] -= self.time_step  # Count down by time step
 
     def manual_division_timer(self, division_times, division_rates):
+        """
+        Helper function to aid in tests. Allows manual setting of first division times and division rates of cells.
+        in the monolayer.
+
+        Parameters
+        ----------
+        division_times : tuple, list
+            A tuple or list of the desired first division times of the cells in the monolayer.
+
+        division_rates : tuple, list
+            A tuple or list of the desired division rates of the cells in the monolayer.
+        """
         self.division_timer = np.asarray(division_times)
         self.division_rates = np.asarray(division_rates)
