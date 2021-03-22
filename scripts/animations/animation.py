@@ -3,21 +3,25 @@ from matplotlib import pyplot as plt
 from matplotlib import animation
 from numpy import random
 
+# Set up desired conditions
+
 random.seed(1234)
 show_interactions = False
 time_step = 0.005
-monolayer = OS_model.Monolayer(size=5)
-monolayer.manual_cell_placement(((2.0, 2.0), (2.0, 3.0)), [0, 1])
-monolayer.manual_division_timer((1, 5), (1, 2))
+end_time = 50
+division_rate = 1 / 24
+monolayer = OS_model.Monolayer(space=True)
+monolayer.set_division_timer(division_rate)
 
 vmax = monolayer.size  # Set up axes and plot
 radius = 0.5
-r_max, mag, drag = monolayer.sim_params
-fig, ax = monolayer.generate_axes()
+r_max, mag, drag = monolayer.r_max, monolayer.mag, monolayer.drag
+spacing = monolayer.space + 1 + division_rate * end_time * vmax
+fig, ax = OS_model.generate_axes(radius=radius,size=vmax,spacing=spacing)
 
 
 def build_plot(time):
-    robin = plt.Circle((vmax / 2, vmax / 2), radius=vmax, facecolor='w')
+    robin = plt.Circle((vmax / 2, vmax / 2), radius=500, facecolor='w')
     fig.gca().add_artist(robin)
     monolayer.simulate(0.25 * time)
     pos = monolayer.positions
@@ -32,5 +36,5 @@ def build_plot(time):
     plt.title('Cells at ' + str(round(monolayer.sim_time, 1)) + ' hours')
 
 
-anim = animation.FuncAnimation(fig, build_plot, frames=100, interval=100)
-anim.save('cell_birth.gif')
+anim = animation.FuncAnimation(fig, build_plot, frames=4*end_time, interval=100)
+anim.save('file_name.gif')
