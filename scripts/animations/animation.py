@@ -17,7 +17,7 @@ vmax = monolayer.size  # Set up axes and plot
 radius = 0.5
 r_max, mag, drag = monolayer.r_max, monolayer.mag, monolayer.drag
 spacing = monolayer.space + 1 + division_rate * end_time * vmax
-fig, ax = OS_model.generate_axes(radius=radius,size=vmax,spacing=spacing)
+fig, ax = OS_model.generate_axes(radius=radius, size=vmax, spacing=spacing)
 
 
 def build_plot(time):
@@ -36,5 +36,5 @@ def build_plot(time):
     plt.title('Cells at ' + str(round(monolayer.sim_time, 1)) + ' hours')
 
 
-anim = animation.FuncAnimation(fig, build_plot, frames=4*end_time, interval=100)
+anim = animation.FuncAnimation(fig, build_plot, frames=4 * end_time, interval=100)
 anim.save('file_name.gif')
