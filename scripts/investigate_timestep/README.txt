@@ -1,0 +1,2 @@
+The data file contains initial positions, positions and forces experienced at an end time of 0.01 hours when simulating two identical
+monolayers, one with a small time step (0.005) and one with a large time step (0.01). Seed used: 72.

@@ -15,15 +15,15 @@ x.show_cells()
 # f = open('timestep_forces_data.txt', 'a')
 # f.write("Initial positions \n")
 # np.savetxt(f, x.positions, fmt='%1.3f', newline=", ")
-# f.write("\n Initial forces with old time_step \n")
+# f.write("\n Initial forces with small time_step \n")
 # np.savetxt(f, x.interaction_forces(), fmt='%1.3f', newline=", ")
 
 x.simulate(0.01)  # Run simulation
 
 # Writing data file
-# f.write("\n Forces at 0.01 with old time_step \n")
+# f.write("\n Forces at 0.01 with small time_step \n")
 # np.savetxt(f, x.interaction_forces(), fmt='%1.3f', newline=", ")
-# f.write("\n Positions at 0.01 with old time_step \n")
+# f.write("\n Positions at 0.01 with small time_step \n")
 # np.savetxt(f, x.positions, fmt='%1.3f', newline=", ")
 
 # Create identical y
@@ -32,14 +32,14 @@ y = OS_model.Monolayer(size=5)
 y.set_k_pert(k_pert=0)
 y.set_time_step(time_step_new)
 
-# f.write("\n Initial forces with new time_step \n")
+# f.write("\n Initial forces with large time_step \n")
 # np.savetxt(f, y.interaction_forces(), fmt='%1.3f', newline=", ")
 
 y.simulate(0.01)  # Run simulation
 
-# f.write("\n Forces at 0.01 with new time_step \n")
+# f.write("\n Forces at 0.01 with large time_step \n")
 # np.savetxt(f, y.interaction_forces(), fmt='%1.3f', newline=", ")
-# f.write("\n Positions at 0.01 with new time_step \n")
+# f.write("\n Positions at 0.01 with large time_step \n")
 # np.savetxt(f, y.positions, fmt='%1.3f', newline=", ")
 # f.close()
 
