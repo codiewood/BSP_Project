@@ -13,7 +13,7 @@ setup(
     packages=['OS_model'],
 
     install_requires=[
-        'numpy==1.19.3',
+        'numpy==1.22.0',
         'scipy',
         'matplotlib'
     ],
